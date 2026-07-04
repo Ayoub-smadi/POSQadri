@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "نظام كاشير المشتل"
+version = "1.0.0"
+id = "artifacts/pos-nursery"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22193
+
+[services.development]
+run = "pnpm --filter @workspace/pos-nursery run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pos-nursery", "run", "build" ]
+publicDir = "artifacts/pos-nursery/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22193"
+BASE_PATH = "/"
