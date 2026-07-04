@@ -29,8 +29,10 @@ export default function Cashier() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cash"|"visa"|"cliq"|"bank"|"split">("cash");
   
-  const { data: products = [], isLoading: isLoadingProducts } = useListProducts({ search });
-  const { data: categories = [] } = useListCategories();
+  const { data: productsData, isLoading: isLoadingProducts } = useListProducts({ search });
+  const products = Array.isArray(productsData) ? productsData : [];
+  const { data: categoriesData } = useListCategories();
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
   const createInvoice = useCreateInvoice();
 
   useEffect(() => {
