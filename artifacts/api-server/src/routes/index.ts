@@ -8,6 +8,7 @@ import customersRouter from "./customers";
 import suppliersRouter from "./suppliers";
 import employeesRouter from "./employees";
 import invoicesRouter from "./invoices";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(customersRouter);
 router.use(suppliersRouter);
 router.use(employeesRouter);
 router.use(invoicesRouter);
+router.use(storageRouter);
 
 export default router;
