@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, LayoutDashboard, ShoppingCart } from "lucide-react";
 import logoImg from "/logo.png";
 
 const loginSchema = z.object({
@@ -34,9 +34,7 @@ export default function Login() {
     }
   }, [user, setLocation]);
 
-  if (user) {
-    return null;
-  }
+  if (user) return null;
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
     loginMutation.mutate({ data: values }, {
@@ -53,17 +51,64 @@ export default function Login() {
     });
   }
 
+  function quickLogin(role: "admin" | "cashier") {
+    const creds = role === "admin"
+      ? { email: "admin@nursery.com", password: "admin123" }
+      : { email: "cashier@nursery.com", password: "admin123" };
+    loginMutation.mutate({ data: creds }, {
+      onSuccess: (data) => {
+        setLocation(data.role === "admin" ? "/dashboard" : "/");
+      },
+      onError: () => {
+        toast({ variant: "destructive", title: "حدث خطأ، حاول مجدداً" });
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen flex w-full">
       <div className="flex-1 flex flex-col justify-center items-center px-4 bg-background">
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-md space-y-6">
           <div className="flex flex-col items-center">
             <img src={logoImg} alt="مشاتل القادري" className="h-32 w-auto mb-4 object-contain" />
-            <p className="text-muted-foreground mt-2">تسجيل الدخول للنظام</p>
+            <p className="text-muted-foreground">تسجيل الدخول للنظام</p>
+          </div>
+
+          {/* Quick Login */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-14 flex flex-col gap-1 border-2 hover:border-primary hover:bg-primary/5"
+              onClick={() => quickLogin("admin")}
+              disabled={loginMutation.isPending}
+            >
+              <LayoutDashboard size={20} className="text-primary" />
+              <span className="text-sm font-medium">دخول كمدير</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-14 flex flex-col gap-1 border-2 hover:border-primary hover:bg-primary/5"
+              onClick={() => quickLogin("cashier")}
+              disabled={loginMutation.isPending}
+            >
+              <ShoppingCart size={20} className="text-primary" />
+              <span className="text-sm font-medium">دخول ككاشير</span>
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs text-muted-foreground">
+              <span className="bg-background px-2">أو أدخل بياناتك يدوياً</span>
+            </div>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="email"
