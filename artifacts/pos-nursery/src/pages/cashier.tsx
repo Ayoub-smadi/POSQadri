@@ -39,11 +39,11 @@ export default function Cashier() {
     }
   }, [isAuthLoading, user, setLocation]);
 
-  if (isAuthLoading || !user) return null;
-
   const filteredProducts = useMemo(() => {
     return products.filter(p => !selectedCategory || p.categoryId === selectedCategory);
   }, [products, selectedCategory]);
+
+  if (isAuthLoading || !user) return null;
 
   const addToCart = (product: any) => {
     setCart(prev => {
