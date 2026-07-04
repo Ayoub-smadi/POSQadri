@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Leaf } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import logoImg from "/logo.png";
 
 const loginSchema = z.object({
   email: z.string().email("البريد الإلكتروني غير صالح"),
@@ -57,10 +58,7 @@ export default function Login() {
       <div className="flex-1 flex flex-col justify-center items-center px-4 bg-background">
         <div className="w-full max-w-md space-y-8">
           <div className="flex flex-col items-center">
-            <div className="h-16 w-16 bg-primary rounded-full flex items-center justify-center mb-4 text-primary-foreground">
-              <Leaf size={32} />
-            </div>
-            <h1 className="text-3xl font-serif font-bold text-foreground">مشتل الأوركيد</h1>
+            <img src={logoImg} alt="مشاتل القادري" className="h-32 w-auto mb-4 object-contain" />
             <p className="text-muted-foreground mt-2">تسجيل الدخول للنظام</p>
           </div>
 

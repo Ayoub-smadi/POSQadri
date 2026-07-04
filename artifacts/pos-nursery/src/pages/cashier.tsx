@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useListProducts, useListCategories, useCreateInvoice } from "@workspace/api-client-react";
-import { Search, ScanBarcode, Minus, Plus, Trash2, LogOut, Check, ArrowRight, ShoppingBag } from "lucide-react";
+import { Search, ScanBarcode, Minus, Plus, Trash2, LogOut, Check, ArrowRight } from "lucide-react";
+import logoImg from "/logo.png";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -109,7 +110,8 @@ export default function Cashier() {
       {/* Products Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 border-b border-border bg-card px-4 flex items-center justify-between shadow-sm z-10">
-          <div className="flex items-center gap-4 flex-1 max-w-xl">
+          <img src={logoImg} alt="مشاتل القادري" className="h-10 w-auto object-contain" />
+          <div className="flex items-center gap-4 flex-1 max-w-xl mx-4">
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
               <Input 

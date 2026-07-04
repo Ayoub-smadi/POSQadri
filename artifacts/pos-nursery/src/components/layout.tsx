@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { LayoutDashboard, ShoppingBag, Users, Truck, UserCircle, Receipt, LogOut, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoImg from "/logo.png";
 
 const navItems = [
   { href: "/dashboard", label: "اللوحة الرئيسية", icon: LayoutDashboard },
@@ -30,9 +31,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-l border-sidebar-border flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-sidebar-border/50">
-          <h1 className="text-2xl font-serif font-bold text-sidebar-foreground">مشتل الأوركيد</h1>
-          <p className="text-sidebar-foreground/60 text-sm mt-1">{user.nameAr}</p>
+        <div className="p-4 border-b border-sidebar-border/50 flex flex-col items-center gap-2">
+          <img src={logoImg} alt="مشاتل القادري" className="h-20 w-auto object-contain" />
+          <p className="text-sidebar-foreground/60 text-sm">{user.nameAr}</p>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
