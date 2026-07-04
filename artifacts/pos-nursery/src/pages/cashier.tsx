@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useListProducts, useListCategories, useCreateInvoice } from "@workspace/api-client-react";
-import { Search, ScanBarcode, Minus, Plus, Trash2, LogOut, Check, ArrowRight } from "lucide-react";
+import { Search, ScanBarcode, Minus, Plus, Trash2, LogOut, Check, ArrowRight, ShoppingBag } from "lucide-react";
 import logoImg from "/logo.png";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
