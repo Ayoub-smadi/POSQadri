@@ -132,6 +132,9 @@ export default function Cashier() {
             <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
               {user.nameAr.charAt(0)}
             </div>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={logout} title="تسجيل الخروج">
+              <LogOut size={20} />
+            </Button>
           </div>
         </header>
 
