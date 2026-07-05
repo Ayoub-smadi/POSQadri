@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, ShoppingBag, Users, Truck, UserCircle, Receipt, LogOut, Store, Tag } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Users, Truck, UserCircle, Receipt, LogOut, Store, Tag, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoImg from "/logo.png";
 
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/customers", label: "العملاء", icon: Users },
   { href: "/suppliers", label: "الموردين", icon: Truck },
   { href: "/employees", label: "الموظفين", icon: UserCircle },
+  { href: "/payroll", label: "الرواتب", icon: Banknote },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

@@ -28,6 +28,8 @@ tags:
     description: Employees / cashiers
   - name: invoices
     description: Sales / invoices
+  - name: payroll
+    description: Employee payroll — salaries and transactions
 paths:
   /storage/uploads/request-url:
     post:
@@ -557,6 +559,99 @@ paths:
               schema:
                 $ref: "#/components/schemas/Invoice"
 
+  /payroll:
+    get:
+      operationId: listPayroll
+      tags: [payroll]
+      summary: List all employees with their salary info
+      responses:
+        "200":
+          description: List of employee payroll summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmployeePayroll"
+
+  /payroll/{employeeId}/salary:
+    parameters:
+      - name: employeeId
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      operationId: setEmployeeSalary
+      tags: [payroll]
+      summary: Set or update base salary for an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryInput"
+      responses:
+        "200":
+          description: Updated salary record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeePayroll"
+
+  /payroll/{employeeId}/transactions:
+    parameters:
+      - name: employeeId
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      operationId: listEmployeeTransactions
+      tags: [payroll]
+      summary: List all transactions for an employee
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SalaryTransaction"
+    post:
+      operationId: createTransaction
+      tags: [payroll]
+      summary: Add a bonus or deduction for an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryTransactionInput"
+      responses:
+        "201":
+          description: Created transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryTransaction"
+
+  /payroll/transactions/{txId}:
+    parameters:
+      - name: txId
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      operationId: deleteTransaction
+      tags: [payroll]
+      summary: Delete a salary transaction
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -1058,3 +1153,66 @@ components:
       properties:
         error:
           type: string
+
+    SalaryTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        type:
+          type: string
+          enum: [bonus, deduction]
+        amount:
+          type: number
+        note:
+          type: string
+          nullable: true
+        transactionDate:
+          type: string
+        createdAt:
+          type: string
+      required: [id, employeeId, type, amount, transactionDate, createdAt]
+
+    SalaryTransactionInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bonus, deduction]
+        amount:
+          type: number
+        note:
+          type: string
+          nullable: true
+        transactionDate:
+          type: string
+          nullable: true
+      required: [type, amount]
+
+    SalaryInput:
+      type: object
+      properties:
+        baseSalary:
+          type: number
+      required: [baseSalary]
+
+    EmployeePayroll:
+      type: object
+      properties:
+        employeeId:
+          type: integer
+        nameAr:
+          type: string
+        role:
+          type: string
+        baseSalary:
+          type: number
+        totalBonus:
+          type: number
+        totalDeduction:
+          type: number
+        netSalary:
+          type: number
+      required: [employeeId, nameAr, role, baseSalary, totalBonus, totalDeduction, netSalary]

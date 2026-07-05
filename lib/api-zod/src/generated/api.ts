@@ -676,3 +676,94 @@ export const GetInvoiceResponse = zod.object({
 })
 
 
+/**
+ * @summary List all employees with their salary info
+ */
+export const ListPayrollResponseItem = zod.object({
+  "employeeId": zod.number(),
+  "nameAr": zod.string(),
+  "role": zod.string(),
+  "baseSalary": zod.number(),
+  "totalBonus": zod.number(),
+  "totalDeduction": zod.number(),
+  "netSalary": zod.number()
+})
+export const ListPayrollResponse = zod.array(ListPayrollResponseItem)
+
+
+/**
+ * @summary Set or update base salary for an employee
+ */
+export const SetEmployeeSalaryParams = zod.object({
+  "employeeId": zod.coerce.number()
+})
+
+export const SetEmployeeSalaryBody = zod.object({
+  "baseSalary": zod.number()
+})
+
+export const SetEmployeeSalaryResponse = zod.object({
+  "employeeId": zod.number(),
+  "nameAr": zod.string(),
+  "role": zod.string(),
+  "baseSalary": zod.number(),
+  "totalBonus": zod.number(),
+  "totalDeduction": zod.number(),
+  "netSalary": zod.number()
+})
+
+
+/**
+ * @summary List all transactions for an employee
+ */
+export const ListEmployeeTransactionsParams = zod.object({
+  "employeeId": zod.coerce.number()
+})
+
+export const ListEmployeeTransactionsResponseItem = zod.object({
+  "id": zod.number(),
+  "employeeId": zod.number(),
+  "type": zod.enum(['bonus', 'deduction']),
+  "amount": zod.number(),
+  "note": zod.string().nullish(),
+  "transactionDate": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListEmployeeTransactionsResponse = zod.array(ListEmployeeTransactionsResponseItem)
+
+
+/**
+ * @summary Add a bonus or deduction for an employee
+ */
+export const CreateTransactionParams = zod.object({
+  "employeeId": zod.coerce.number()
+})
+
+export const CreateTransactionBody = zod.object({
+  "type": zod.enum(['bonus', 'deduction']),
+  "amount": zod.number(),
+  "note": zod.string().nullish(),
+  "transactionDate": zod.string().nullish()
+})
+
+export const CreateTransactionResponse = zod.object({
+  "id": zod.number(),
+  "employeeId": zod.number(),
+  "type": zod.enum(['bonus', 'deduction']),
+  "amount": zod.number(),
+  "note": zod.string().nullish(),
+  "transactionDate": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a salary transaction
+ */
+export const DeleteTransactionParams = zod.object({
+  "txId": zod.coerce.number()
+})
+
+export const DeleteTransactionResponse = zod.void()
+
+

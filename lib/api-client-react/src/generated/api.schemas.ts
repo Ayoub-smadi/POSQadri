@@ -287,6 +287,53 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export type SalaryTransactionType = typeof SalaryTransactionType[keyof typeof SalaryTransactionType];
+
+
+export const SalaryTransactionType = {
+  bonus: 'bonus',
+  deduction: 'deduction',
+} as const;
+
+export interface SalaryTransaction {
+  id: number;
+  employeeId: number;
+  type: SalaryTransactionType;
+  amount: number;
+  note?: string | null;
+  transactionDate: string;
+  createdAt: string;
+}
+
+export type SalaryTransactionInputType = typeof SalaryTransactionInputType[keyof typeof SalaryTransactionInputType];
+
+
+export const SalaryTransactionInputType = {
+  bonus: 'bonus',
+  deduction: 'deduction',
+} as const;
+
+export interface SalaryTransactionInput {
+  type: SalaryTransactionInputType;
+  amount: number;
+  note?: string | null;
+  transactionDate?: string | null;
+}
+
+export interface SalaryInput {
+  baseSalary: number;
+}
+
+export interface EmployeePayroll {
+  employeeId: number;
+  nameAr: string;
+  role: string;
+  baseSalary: number;
+  totalBonus: number;
+  totalDeduction: number;
+  netSalary: number;
+}
+
 export type ListProductsParams = {
 search?: string;
 categoryId?: number;
