@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLogin } from "@workspace/api-client-react";
+import { useLogin, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export default function Login() {
   const { user } = useAuth();
   const loginMutation = useLogin();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -39,6 +41,7 @@ export default function Login() {
   function onSubmit(values: z.infer<typeof loginSchema>) {
     loginMutation.mutate({ data: values }, {
       onSuccess: (data) => {
+        queryClient.setQueryData(getGetCurrentUserQueryKey(), data);
         setLocation(data.role === "admin" ? "/dashboard" : "/");
       },
       onError: () => {
@@ -57,6 +60,7 @@ export default function Login() {
       : { email: "cashier@nursery.com", password: "admin123" };
     loginMutation.mutate({ data: creds }, {
       onSuccess: (data) => {
+        queryClient.setQueryData(getGetCurrentUserQueryKey(), data);
         setLocation(data.role === "admin" ? "/dashboard" : "/");
       },
       onError: () => {

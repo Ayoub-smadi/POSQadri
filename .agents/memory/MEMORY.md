@@ -1,1 +1,2 @@
 - [Session cookies in path-routed artifacts](proxy-session-cookies.md) — testing auth via `curl localhost:<port>` fails even when correct; must test through the public https proxy domain.
+- [pos-nursery dev API proxy](pos-nursery-dev-proxy.md) — pnpm monorepo split frontend/backend needs a vite `server.proxy` for `/api` or relative fetches 404 against the frontend's own dev server.
