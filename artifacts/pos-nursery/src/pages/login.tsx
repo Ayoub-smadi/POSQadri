@@ -57,7 +57,11 @@ export default function Login() {
   function fillCredentials(role: "admin" | "cashier") {
     const email = role === "admin" ? "admin@pos.com" : "cashier@pos.com";
     form.setValue("email", email, { shouldValidate: true });
-    form.setValue("password", "123456", { shouldValidate: true });
+    form.setValue("password", "", { shouldValidate: false });
+    setTimeout(() => {
+      const passwordInput = document.querySelector<HTMLInputElement>('input[type="password"]');
+      if (passwordInput) passwordInput.focus();
+    }, 50);
   }
 
   return (
