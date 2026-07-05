@@ -54,19 +54,10 @@ export default function Login() {
     });
   }
 
-  function quickLogin(role: "admin" | "cashier") {
-    const creds = role === "admin"
-      ? { email: "admin@nursery.com", password: "admin123" }
-      : { email: "cashier@nursery.com", password: "admin123" };
-    loginMutation.mutate({ data: creds }, {
-      onSuccess: (data) => {
-        queryClient.setQueryData(getGetCurrentUserQueryKey(), data);
-        setLocation(data.role === "admin" ? "/dashboard" : "/");
-      },
-      onError: () => {
-        toast({ variant: "destructive", title: "حدث خطأ، حاول مجدداً" });
-      }
-    });
+  function fillCredentials(role: "admin" | "cashier") {
+    const email = role === "admin" ? "admin@pos.com" : "cashier@pos.com";
+    form.setValue("email", email, { shouldValidate: true });
+    form.setValue("password", "123456", { shouldValidate: true });
   }
 
   return (
@@ -84,7 +75,7 @@ export default function Login() {
               type="button"
               variant="outline"
               className="h-14 flex flex-col gap-1 border-2 hover:border-primary hover:bg-primary/5"
-              onClick={() => quickLogin("admin")}
+              onClick={() => fillCredentials("admin")}
               disabled={loginMutation.isPending}
             >
               <LayoutDashboard size={20} className="text-primary" />
@@ -94,7 +85,7 @@ export default function Login() {
               type="button"
               variant="outline"
               className="h-14 flex flex-col gap-1 border-2 hover:border-primary hover:bg-primary/5"
-              onClick={() => quickLogin("cashier")}
+              onClick={() => fillCredentials("cashier")}
               disabled={loginMutation.isPending}
             >
               <ShoppingCart size={20} className="text-primary" />
