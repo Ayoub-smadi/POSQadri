@@ -56,7 +56,11 @@ router.post("/customers", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const [customer] = await db.insert(customersTable).values(parsed.data).returning();
+  const { balance, ...rest } = parsed.data;
+  const [customer] = await db
+    .insert(customersTable)
+    .values({ ...rest, ...(balance !== undefined ? { balance: String(balance) } : {}) })
+    .returning();
   if (!customer) {
     res.status(500).json({ error: "Failed to create customer" });
     return;
@@ -78,9 +82,10 @@ router.patch("/customers/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const { balance, ...rest } = parsed.data;
   const [customer] = await db
     .update(customersTable)
-    .set(parsed.data)
+    .set({ ...rest, ...(balance !== undefined ? { balance: String(balance) } : {}) })
     .where(eq(customersTable.id, params.data.id))
     .returning();
 

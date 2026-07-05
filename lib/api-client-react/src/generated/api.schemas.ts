@@ -144,6 +144,7 @@ export interface CustomerInput {
   name: string;
   phone?: string | null;
   avatarUrl?: string | null;
+  balance?: number;
 }
 
 export interface InvoiceItem {
@@ -173,6 +174,7 @@ export const InvoicePaymentMethod = {
   cliq: 'cliq',
   bank: 'bank',
   split: 'split',
+  credit: 'credit',
 } as const;
 
 export type InvoiceStatus = typeof InvoiceStatus[keyof typeof InvoiceStatus];
@@ -209,6 +211,7 @@ export const InvoiceInputPaymentMethod = {
   cliq: 'cliq',
   bank: 'bank',
   split: 'split',
+  credit: 'credit',
 } as const;
 
 export interface InvoiceInput {

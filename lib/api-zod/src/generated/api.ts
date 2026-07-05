@@ -370,7 +370,8 @@ export const ListCustomersResponse = zod.array(ListCustomersResponseItem)
 export const CreateCustomerBody = zod.object({
   "name": zod.string(),
   "phone": zod.string().nullish(),
-  "avatarUrl": zod.string().nullish()
+  "avatarUrl": zod.string().nullish(),
+  "balance": zod.number().optional()
 })
 
 export const CreateCustomerResponse = zod.object({
@@ -395,7 +396,8 @@ export const UpdateCustomerParams = zod.object({
 export const UpdateCustomerBody = zod.object({
   "name": zod.string(),
   "phone": zod.string().nullish(),
-  "avatarUrl": zod.string().nullish()
+  "avatarUrl": zod.string().nullish(),
+  "balance": zod.number().optional()
 })
 
 export const UpdateCustomerResponse = zod.object({
@@ -590,7 +592,7 @@ export const ListInvoicesResponseItem = zod.object({
   "discount": zod.number(),
   "tax": zod.number(),
   "total": zod.number(),
-  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split']),
+  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split', 'credit']),
   "status": zod.enum(['completed', 'refunded']),
   "createdAt": zod.string()
 })
@@ -612,7 +614,7 @@ export const CreateInvoiceBody = zod.object({
 })),
   "discount": zod.number().optional(),
   "tax": zod.number().optional(),
-  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split'])
+  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split', 'credit'])
 })
 
 export const CreateInvoiceResponse = zod.object({
@@ -635,7 +637,7 @@ export const CreateInvoiceResponse = zod.object({
   "discount": zod.number(),
   "tax": zod.number(),
   "total": zod.number(),
-  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split']),
+  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split', 'credit']),
   "status": zod.enum(['completed', 'refunded']),
   "createdAt": zod.string()
 })
@@ -668,7 +670,7 @@ export const GetInvoiceResponse = zod.object({
   "discount": zod.number(),
   "tax": zod.number(),
   "total": zod.number(),
-  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split']),
+  "paymentMethod": zod.enum(['cash', 'visa', 'cliq', 'bank', 'split', 'credit']),
   "status": zod.enum(['completed', 'refunded']),
   "createdAt": zod.string()
 })

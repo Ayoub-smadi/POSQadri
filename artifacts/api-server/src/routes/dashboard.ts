@@ -68,7 +68,7 @@ router.get("/dashboard/summary", requireAuth, async (_req, res): Promise<void> =
     .from(invoiceItemsTable)
     .innerJoin(productsTable, eq(invoiceItemsTable.productId, productsTable.id))
     .groupBy(productsTable.id, productsTable.nameAr, productsTable.imageUrl)
-    .orderBy(sql`2 DESC`)
+    .orderBy(sql`5 DESC`)
     .limit(5);
 
   const lowStockProducts = await db

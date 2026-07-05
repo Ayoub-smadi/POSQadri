@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { useListProducts, useListCategories, useCreateInvoice } from "@workspace/api-client-react";
-import { Search, ScanBarcode, Minus, Plus, Trash2, LogOut, Check, ArrowRight, ShoppingBag, Printer } from "lucide-react";
+import { useListProducts, useListCategories, useCreateInvoice, useListCustomers } from "@workspace/api-client-react";
+import { Search, ScanBarcode, Minus, Plus, Trash2, LogOut, Check, ArrowRight, ShoppingBag, Printer, UserCircle, X } from "lucide-react";
 import logoImg from "/logo.png";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
 type CartItem = {
@@ -27,11 +28,12 @@ type CompletedInvoice = {
   total: number;
   paymentMethod: string;
   cashierName: string;
+  customerName?: string;
   date: Date;
 };
 
 const paymentLabels: Record<string, string> = {
-  cash: "كاش", visa: "فيزا", cliq: "كليك", bank: "حوالة بنكية"
+  cash: "كاش", visa: "فيزا", cliq: "كليك", bank: "حوالة بنكية", credit: "دين (آجل)"
 };
 
 export default function Cashier() {
@@ -45,13 +47,19 @@ export default function Cashier() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<CompletedInvoice | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cash"|"visa"|"cliq"|"bank">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash"|"visa"|"cliq"|"bank"|"credit">("cash");
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   const { data: productsData, isLoading: isLoadingProducts } = useListProducts({ search });
   const products = Array.isArray(productsData) ? productsData : [];
   const { data: categoriesData } = useListCategories();
   const categories = Array.isArray(categoriesData) ? categoriesData : [];
+  const { data: customersData } = useListCustomers({ search: customerSearch });
+  const customers = Array.isArray(customersData) ? customersData : [];
   const createInvoice = useCreateInvoice();
 
   useEffect(() => {
@@ -76,6 +84,18 @@ export default function Cashier() {
     });
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    const term = search.trim();
+    if (!term) return;
+    const exactMatch = products.find(p => p.barcode === term);
+    if (exactMatch) {
+      addToCart(exactMatch);
+      setSearch("");
+      e.preventDefault();
+    }
+  };
+
   const updateQuantity = (productId: number, delta: number) => {
     setCart(prev => prev.map(item => {
       if (item.productId === productId) {
@@ -97,6 +117,10 @@ export default function Cashier() {
 
   const handleCompleteSale = () => {
     if (cart.length === 0) return;
+    if (paymentMethod === "credit" && !selectedCustomer) {
+      toast({ variant: "destructive", title: "يجب اختيار الزبون للدفع بالدين" });
+      return;
+    }
     
     createInvoice.mutate({
       data: {
@@ -109,7 +133,8 @@ export default function Cashier() {
         paymentMethod: paymentMethod,
         discount: totalDiscount,
         tax: tax,
-        employeeId: user.id
+        employeeId: user.id,
+        customerId: selectedCustomer?.id,
       }
     }, {
       onSuccess: (data: any) => {
@@ -122,10 +147,12 @@ export default function Cashier() {
           total,
           paymentMethod,
           cashierName: user.nameAr,
+          customerName: selectedCustomer?.nameAr,
           date: new Date(),
         };
         setCompletedInvoice(invoice);
         setCart([]);
+        setSelectedCustomer(null);
         setIsPaymentOpen(false);
         setIsSuccessOpen(true);
       },
@@ -180,6 +207,7 @@ export default function Cashier() {
         <div class="info">
           <span>التاريخ: ${dateStr}</span>
           <span>الكاشير: ${completedInvoice.cashierName}</span>
+          ${completedInvoice.customerName ? `<span>الزبون: ${completedInvoice.customerName}</span>` : ""}
           <span>طريقة الدفع: ${paymentLabels[completedInvoice.paymentMethod] || completedInvoice.paymentMethod}</span>
           ${completedInvoice.id ? `<span>رقم الفاتورة: #${completedInvoice.id}</span>` : ""}
         </div>
@@ -217,16 +245,65 @@ export default function Cashier() {
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
               <Input 
-                placeholder="ابحث عن منتج..." 
+                ref={searchInputRef}
+                placeholder="ابحث عن منتج أو امسح الباركود..." 
                 className="pl-4 pr-10 rounded-full bg-muted/50 border-none focus-visible:ring-1"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
               />
             </div>
-            <Button variant="outline" size="icon" className="rounded-full shrink-0">
+            <Button variant="outline" size="icon" className="rounded-full shrink-0" title="مسح الباركود" onClick={() => searchInputRef.current?.focus()}>
               <ScanBarcode size={20} />
             </Button>
           </div>
+
+          <Popover open={isCustomerPickerOpen} onOpenChange={setIsCustomerPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="rounded-full gap-2 shrink-0">
+                <UserCircle size={18} />
+                {selectedCustomer ? selectedCustomer.nameAr : "زبون عام"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-2" align="end">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="بحث عن زبون..."
+                    value={customerSearch}
+                    onChange={e => setCustomerSearch(e.target.value)}
+                    className="flex-1"
+                  />
+                  {selectedCustomer && (
+                    <Button variant="ghost" size="icon" onClick={() => { setSelectedCustomer(null); setIsCustomerPickerOpen(false); }}>
+                      <X size={16} />
+                    </Button>
+                  )}
+                </div>
+                <div className="max-h-56 overflow-y-auto space-y-1">
+                  <button
+                    className="w-full text-right px-3 py-2 rounded-lg hover:bg-muted text-sm"
+                    onClick={() => { setSelectedCustomer(null); setIsCustomerPickerOpen(false); }}
+                  >
+                    زبون عام (بدون تسجيل)
+                  </button>
+                  {customers.map((c: any) => (
+                    <button
+                      key={c.id}
+                      className="w-full text-right px-3 py-2 rounded-lg hover:bg-muted text-sm flex items-center justify-between"
+                      onClick={() => { setSelectedCustomer(c); setIsCustomerPickerOpen(false); }}
+                    >
+                      <span>{c.nameAr}</span>
+                      {c.balance > 0 && <span className="text-xs text-destructive">دين: {c.balance.toFixed(2)}</span>}
+                    </button>
+                  ))}
+                  {customers.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground py-4">لا يوجد زبائن</p>
+                  )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
           
           <div className="flex items-center gap-4">
             {user.role === "admin" && (
@@ -398,7 +475,8 @@ export default function Cashier() {
                 { id: "cash", label: "كاش", icon: "💵" },
                 { id: "visa", label: "فيزا", icon: "💳" },
                 { id: "cliq", label: "كليك", icon: "📱" },
-                { id: "bank", label: "حوالة", icon: "🏦" }
+                { id: "bank", label: "حوالة", icon: "🏦" },
+                { id: "credit", label: "دين (آجل)", icon: "🧾" }
               ].map(method => (
                 <button
                   key={method.id}
@@ -414,6 +492,16 @@ export default function Cashier() {
                 </button>
               ))}
             </div>
+
+            {paymentMethod === "credit" && (
+              <div className="mt-4 p-3 rounded-xl bg-muted/50 text-sm">
+                {selectedCustomer ? (
+                  <span>سيتم تسجيل المبلغ كدين على: <strong>{selectedCustomer.nameAr}</strong></span>
+                ) : (
+                  <span className="text-destructive">يجب اختيار الزبون من الأعلى قبل الدفع بالدين</span>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="flex gap-3">
@@ -423,7 +511,7 @@ export default function Cashier() {
             <Button 
               className="flex-[2] h-12 rounded-xl font-bold" 
               onClick={handleCompleteSale}
-              disabled={createInvoice.isPending}
+              disabled={createInvoice.isPending || (paymentMethod === "credit" && !selectedCustomer)}
             >
               {createInvoice.isPending ? "جاري الحفظ..." : "تأكيد الدفع"}
             </Button>

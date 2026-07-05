@@ -1,12 +1,19 @@
 import { Layout } from "@/components/layout";
 import { useListInvoices } from "@workspace/api-client-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { Search, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { InvoiceDetailDialog } from "@/components/invoice-detail-dialog";
+
+const paymentLabelsAr: Record<string, string> = {
+  cash: "كاش", visa: "فيزا", cliq: "كليك", bank: "حوالة", split: "مقسّم", credit: "دين",
+};
 
 export default function Invoices() {
   const [search, setSearch] = useState("");
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const { data: invoices = [] } = useListInvoices({ search });
 
   return (
@@ -35,26 +42,32 @@ export default function Invoices() {
                 <TableHead className="text-center">الإجمالي</TableHead>
                 <TableHead className="text-center">طريقة الدفع</TableHead>
                 <TableHead>التاريخ</TableHead>
+                <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {invoices.map(inv => (
-                <TableRow key={inv.id}>
+                <TableRow key={inv.id} className="cursor-pointer" onClick={() => setSelectedInvoiceId(inv.id)}>
                   <TableCell className="font-mono font-medium">#{inv.number}</TableCell>
                   <TableCell>{inv.customerName || 'زبون عام'}</TableCell>
                   <TableCell>{inv.employeeName || '-'}</TableCell>
                   <TableCell className="text-center text-primary font-bold">{inv.total.toFixed(2)} د.أ</TableCell>
                   <TableCell className="text-center">
-                    <span className="px-2 py-1 rounded-md text-xs bg-muted uppercase tracking-widest">{inv.paymentMethod}</span>
+                    <span className="px-2 py-1 rounded-md text-xs bg-muted uppercase tracking-widest">{paymentLabelsAr[inv.paymentMethod] || inv.paymentMethod}</span>
                   </TableCell>
                   <TableCell dir="ltr" className="text-right text-sm text-muted-foreground">
                     {new Date(inv.createdAt).toLocaleString('ar-JO')}
+                  </TableCell>
+                  <TableCell className="text-left">
+                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSelectedInvoiceId(inv.id); }}>
+                      <Eye size={16} />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
               {invoices.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     لا توجد فواتير
                   </TableCell>
                 </TableRow>
@@ -63,6 +76,8 @@ export default function Invoices() {
           </Table>
         </div>
       </div>
+
+      <InvoiceDetailDialog invoiceId={selectedInvoiceId} onOpenChange={(v) => !v && setSelectedInvoiceId(null)} />
     </Layout>
   );
 }

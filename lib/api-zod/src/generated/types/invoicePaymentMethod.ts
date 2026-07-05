@@ -15,4 +15,5 @@ export const InvoicePaymentMethod = {
   cliq: 'cliq',
   bank: 'bank',
   split: 'split',
+  credit: 'credit',
 } as const;

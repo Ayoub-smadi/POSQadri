@@ -809,6 +809,8 @@ components:
         avatarUrl:
           type: string
           nullable: true
+        balance:
+          type: number
       required: [name]
 
     InvoiceItem:
@@ -880,7 +882,7 @@ components:
           type: number
         paymentMethod:
           type: string
-          enum: [cash, visa, cliq, bank, split]
+          enum: [cash, visa, cliq, bank, split, credit]
         status:
           type: string
           enum: [completed, refunded]
@@ -917,7 +919,7 @@ components:
           type: number
         paymentMethod:
           type: string
-          enum: [cash, visa, cliq, bank, split]
+          enum: [cash, visa, cliq, bank, split, credit]
       required: [items, paymentMethod]
 
     TopProduct:

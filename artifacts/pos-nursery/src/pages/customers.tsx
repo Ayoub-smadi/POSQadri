@@ -2,16 +2,30 @@ import { Layout } from "@/components/layout";
 import { useListCustomers, useDeleteCustomer } from "@workspace/api-client-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { CustomerDialog } from "@/components/customer-dialog";
 
 export default function Customers() {
   const [search, setSearch] = useState("");
   const { data: customers = [], refetch } = useListCustomers({ search });
   const deleteMutation = useDeleteCustomer();
   const { toast } = useToast();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+
+  const handleAdd = () => {
+    setEditingCustomer(null);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (customer: any) => {
+    setEditingCustomer(customer);
+    setDialogOpen(true);
+  };
 
   const handleDelete = (id: number) => {
     if (confirm("هل أنت متأكد؟")) {
@@ -31,7 +45,7 @@ export default function Customers() {
           <div>
             <h1 className="text-3xl font-serif font-bold">العملاء</h1>
           </div>
-          <Button className="rounded-xl gap-2"><Plus size={18} />إضافة عميل</Button>
+          <Button className="rounded-xl gap-2" onClick={handleAdd}><Plus size={18} />إضافة عميل</Button>
         </div>
 
         <div className="bg-card rounded-2xl shadow-sm border border-border">
@@ -49,6 +63,7 @@ export default function Customers() {
                 <TableHead>رقم الهاتف</TableHead>
                 <TableHead className="text-center">عدد المشتريات</TableHead>
                 <TableHead className="text-center">إجمالي الإنفاق</TableHead>
+                <TableHead className="text-center">الرصيد</TableHead>
                 <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
@@ -59,7 +74,13 @@ export default function Customers() {
                   <TableCell dir="ltr" className="text-right">{c.phone || '-'}</TableCell>
                   <TableCell className="text-center">{c.purchaseCount}</TableCell>
                   <TableCell className="text-center text-primary font-bold">{c.totalSpent.toFixed(2)}</TableCell>
+                  <TableCell className={`text-center font-bold ${(c.balance ?? 0) > 0 ? 'text-destructive' : (c.balance ?? 0) < 0 ? 'text-primary' : ''}`}>
+                    {(c.balance ?? 0).toFixed(2)}
+                  </TableCell>
                   <TableCell className="text-left">
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
+                      <Edit size={16} />
+                    </Button>
                     <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(c.id)}>
                       <Trash2 size={16} />
                     </Button>
@@ -70,6 +91,13 @@ export default function Customers() {
           </Table>
         </div>
       </div>
+
+      <CustomerDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        customer={editingCustomer}
+        onSuccess={refetch}
+      />
     </Layout>
   );
 }

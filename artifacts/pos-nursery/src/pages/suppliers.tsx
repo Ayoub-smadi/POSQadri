@@ -2,13 +2,28 @@ import { Layout } from "@/components/layout";
 import { useListSuppliers, useDeleteSupplier } from "@workspace/api-client-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { SupplierDialog } from "@/components/supplier-dialog";
 
 export default function Suppliers() {
   const { data: suppliers = [], refetch } = useListSuppliers();
   const deleteMutation = useDeleteSupplier();
   const { toast } = useToast();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null);
+
+  const handleAdd = () => {
+    setEditingSupplier(null);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (supplier: any) => {
+    setEditingSupplier(supplier);
+    setDialogOpen(true);
+  };
 
   const handleDelete = (id: number) => {
     if (confirm("هل أنت متأكد؟")) {
@@ -28,7 +43,7 @@ export default function Suppliers() {
           <div>
             <h1 className="text-3xl font-serif font-bold">الموردين</h1>
           </div>
-          <Button className="rounded-xl gap-2"><Plus size={18} />إضافة مورد</Button>
+          <Button className="rounded-xl gap-2" onClick={handleAdd}><Plus size={18} />إضافة مورد</Button>
         </div>
 
         <div className="bg-card rounded-2xl shadow-sm border border-border">
@@ -38,6 +53,7 @@ export default function Suppliers() {
                 <TableHead>الاسم</TableHead>
                 <TableHead>رقم الهاتف</TableHead>
                 <TableHead>البريد الإلكتروني</TableHead>
+                <TableHead>العنوان</TableHead>
                 <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
@@ -47,7 +63,11 @@ export default function Suppliers() {
                   <TableCell className="font-medium">{s.name}</TableCell>
                   <TableCell dir="ltr" className="text-right">{s.phone || '-'}</TableCell>
                   <TableCell>{s.email || '-'}</TableCell>
+                  <TableCell>{s.address || '-'}</TableCell>
                   <TableCell className="text-left">
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(s)}>
+                      <Edit size={16} />
+                    </Button>
                     <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(s.id)}>
                       <Trash2 size={16} />
                     </Button>
@@ -58,6 +78,13 @@ export default function Suppliers() {
           </Table>
         </div>
       </div>
+
+      <SupplierDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        supplier={editingSupplier}
+        onSuccess={refetch}
+      />
     </Layout>
   );
 }

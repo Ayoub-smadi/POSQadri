@@ -197,13 +197,24 @@ router.post("/invoices", requireAuth, async (req, res): Promise<void> => {
   }
 
   if (customerId) {
-    await db
-      .update(customersTable)
-      .set({
-        purchaseCount: sql`${customersTable.purchaseCount} + 1`,
-        totalSpent: sql`${customersTable.totalSpent} + ${total.toFixed(2)}`,
-      })
-      .where(eq(customersTable.id, customerId));
+    if (paymentMethod === "credit") {
+      await db
+        .update(customersTable)
+        .set({
+          purchaseCount: sql`${customersTable.purchaseCount} + 1`,
+          totalSpent: sql`${customersTable.totalSpent} + ${total.toFixed(2)}`,
+          balance: sql`${customersTable.balance} + ${total.toFixed(2)}`,
+        })
+        .where(eq(customersTable.id, customerId));
+    } else {
+      await db
+        .update(customersTable)
+        .set({
+          purchaseCount: sql`${customersTable.purchaseCount} + 1`,
+          totalSpent: sql`${customersTable.totalSpent} + ${total.toFixed(2)}`,
+        })
+        .where(eq(customersTable.id, customerId));
+    }
   }
 
   const full = await loadInvoiceWithItems(invoice.id);

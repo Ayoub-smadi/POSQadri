@@ -10,4 +10,5 @@ export interface CustomerInput {
   name: string;
   phone?: string | null;
   avatarUrl?: string | null;
+  balance?: number;
 }

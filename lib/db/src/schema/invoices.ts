@@ -5,7 +5,7 @@ import { customersTable } from "./customers";
 import { employeesTable } from "./employees";
 import { productsTable } from "./products";
 
-export const paymentMethodEnum = pgEnum("payment_method", ["cash", "visa", "cliq", "bank", "split"]);
+export const paymentMethodEnum = pgEnum("payment_method", ["cash", "visa", "cliq", "bank", "split", "credit"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["completed", "refunded"]);
 
 export const invoicesTable = pgTable("invoices", {

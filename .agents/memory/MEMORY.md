@@ -1,0 +1,1 @@
+- [Session cookies in path-routed artifacts](proxy-session-cookies.md) — testing auth via `curl localhost:<port>` fails even when correct; must test through the public https proxy domain.
