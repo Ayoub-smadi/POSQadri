@@ -15,6 +15,7 @@ import Employees from "@/pages/employees";
 import Invoices from "@/pages/invoices";
 import Categories from "@/pages/categories";
 import Payroll from "@/pages/payroll";
+import Finance from "@/pages/finance";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/invoices" component={Invoices} />
       <Route path="/categories" component={Categories} />
       <Route path="/payroll" component={Payroll} />
+      <Route path="/finance" component={Finance} />
       <Route component={NotFound} />
     </Switch>
   );

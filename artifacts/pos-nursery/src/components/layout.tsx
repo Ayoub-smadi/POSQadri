@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, ShoppingBag, Users, Truck, UserCircle, Receipt, LogOut, Store, Tag, Banknote } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Users, Truck, UserCircle, Receipt, LogOut, Store, Tag, Banknote, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoImg from "/logo.png";
 
 const navItems = [
   { href: "/dashboard", label: "اللوحة الرئيسية", icon: LayoutDashboard },
   { href: "/", label: "شاشة الكاشير", icon: Store },
+  { href: "/finance", label: "الإدارة المالية", icon: Wallet },
   { href: "/products", label: "المنتجات", icon: ShoppingBag },
   { href: "/categories", label: "التصنيفات", icon: Tag },
   { href: "/invoices", label: "المبيعات", icon: Receipt },

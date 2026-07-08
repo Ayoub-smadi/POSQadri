@@ -5,3 +5,4 @@ export * from "./products";
 export * from "./customers";
 export * from "./invoices";
 export * from "./payroll";
+export * from "./finance";
