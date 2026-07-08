@@ -489,4 +489,277 @@ router.get("/finance/statement", requireAuth, async (req, res): Promise<void> =>
   res.json({ total, entries: page });
 });
 
+// ─── Treasury Movements (with running balance) ───────────────────────────────
+
+router.get("/finance/treasury", requireAuth, async (req, res): Promise<void> => {
+  const fromStr = String(req.query.from ?? "");
+  const toStr   = String(req.query.to   ?? "");
+  const search  = String(req.query.search ?? "");
+
+  const now = new Date();
+  const from = fromStr
+    ? new Date(fromStr + "T00:00:00")
+    : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const to = toStr
+    ? new Date(toStr + "T23:59:59")
+    : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  // ── Opening balance (everything BEFORE 'from') ──
+  const [oi] = await db
+    .select({ t: sql<string>`coalesce(sum(total),0)` })
+    .from(invoicesTable)
+    .where(sql`payment_method != 'credit' AND status = 'completed' AND created_at < ${from}`);
+  const [or_] = await db
+    .select({ t: sql<string>`coalesce(sum(amount),0)` })
+    .from(financialTransactionsTable)
+    .where(and(eq(financialTransactionsTable.type, "receipt"), eq(financialTransactionsTable.isInCashBox, true), sql`created_at < ${from}`));
+  const [op] = await db
+    .select({ t: sql<string>`coalesce(sum(amount),0)` })
+    .from(financialTransactionsTable)
+    .where(and(eq(financialTransactionsTable.type, "payment"), eq(financialTransactionsTable.isInCashBox, true), sql`created_at < ${from}`));
+
+  const openingBalance = Number(oi?.t ?? 0) + Number(or_?.t ?? 0) - Number(op?.t ?? 0);
+
+  // ── Period invoices ──
+  const periodInvoices = await db
+    .select({
+      id: invoicesTable.id,
+      number: invoicesTable.number,
+      amount: invoicesTable.total,
+      paymentMethod: invoicesTable.paymentMethod,
+      customerName: customersTable.name,
+      createdAt: invoicesTable.createdAt,
+    })
+    .from(invoicesTable)
+    .leftJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
+    .where(sql`invoices.payment_method != 'credit' AND invoices.status = 'completed' AND invoices.created_at >= ${from} AND invoices.created_at <= ${to}`);
+
+  // ── Period transactions (in cash box) ──
+  const periodTx = await db
+    .select({
+      id: financialTransactionsTable.id,
+      number: financialTransactionsTable.number,
+      type: financialTransactionsTable.type,
+      amount: financialTransactionsTable.amount,
+      categoryName: expenseCategoriesTable.nameAr,
+      description: financialTransactionsTable.description,
+      partyName: financialTransactionsTable.partyName,
+      purchaseOrderId: financialTransactionsTable.purchaseOrderId,
+      createdAt: financialTransactionsTable.createdAt,
+    })
+    .from(financialTransactionsTable)
+    .leftJoin(expenseCategoriesTable, eq(financialTransactionsTable.categoryId, expenseCategoriesTable.id))
+    .where(and(
+      eq(financialTransactionsTable.isInCashBox, true),
+      gte(financialTransactionsTable.createdAt, from),
+      lte(financialTransactionsTable.createdAt, to),
+    ));
+
+  // ── Merge ──
+  const rows: any[] = [];
+  for (const inv of periodInvoices) {
+    rows.push({
+      id: `inv-${inv.id}`, dbId: inv.id,
+      number: inv.number,
+      in: Number(inv.amount), out: 0,
+      category: inv.paymentMethod === "cash" ? "مبيعات نقدية" : inv.paymentMethod,
+      reference: inv.number,
+      account: inv.customerName ?? "زبون عام",
+      description: "",
+      type: "invoice",
+      createdAt: inv.createdAt,
+    });
+  }
+  for (const tx of periodTx) {
+    rows.push({
+      id: `tx-${tx.id}`, dbId: tx.id,
+      number: tx.number,
+      in: tx.type === "receipt" ? Number(tx.amount) : 0,
+      out: tx.type === "payment" ? Number(tx.amount) : 0,
+      category: tx.categoryName ?? (tx.type === "receipt" ? "قبض" : "صرف"),
+      reference: tx.number,
+      account: tx.partyName ?? "",
+      description: tx.description ?? "",
+      type: tx.type,
+      createdAt: tx.createdAt,
+    });
+  }
+
+  // ── Apply search ──
+  const filtered = search
+    ? rows.filter(r =>
+        r.account?.includes(search) ||
+        r.category?.includes(search) ||
+        r.reference?.includes(search) ||
+        r.description?.includes(search))
+    : rows;
+
+  // ── Sort ASC for running balance ──
+  filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  let runningBalance = openingBalance;
+  let netPeriod = 0;
+  const withBalance = filtered.map((row, i) => {
+    runningBalance += row.in - row.out;
+    netPeriod      += row.in - row.out;
+    return {
+      ...row, balance: runningBalance, rowNum: i + 1,
+      createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+    };
+  });
+
+  const totalIn  = filtered.reduce((s, r) => s + r.in,  0);
+  const totalOut = filtered.reduce((s, r) => s + r.out, 0);
+
+  res.json({ openingBalance, netPeriod, closingBalance: openingBalance + netPeriod, totalIn, totalOut, rows: withBalance });
+});
+
+// ─── Accounts (Parties) List ──────────────────────────────────────────────────
+
+router.get("/finance/accounts", requireAuth, async (_req, res): Promise<void> => {
+  const [txParties, customers, suppliers, employees] = await Promise.all([
+    db.selectDistinct({ name: financialTransactionsTable.partyName })
+      .from(financialTransactionsTable)
+      .where(sql`party_name IS NOT NULL AND party_name != ''`),
+    db.select({ name: customersTable.name }).from(customersTable),
+    db.select({ name: suppliersTable.name }).from(suppliersTable),
+    db.select({ name: employeesTable.nameAr }).from(employeesTable),
+  ]);
+
+  const all = new Set([
+    ...txParties.map(a => a.name!),
+    ...customers.map(c => c.name),
+    ...suppliers.map(s => s.name),
+    ...employees.map(e => e.name),
+  ]);
+
+  res.json([...all].filter(Boolean).sort());
+});
+
+// ─── Account Statement ────────────────────────────────────────────────────────
+
+router.get("/finance/account-statement", requireAuth, async (req, res): Promise<void> => {
+  const account = String(req.query.account ?? "").trim();
+  if (!account) { res.json({ account: "", openingBalance: 0, totalDebit: 0, totalCredit: 0, closingBalance: 0, rows: [] }); return; }
+
+  const fromStr = String(req.query.from ?? "");
+  const toStr   = String(req.query.to   ?? "");
+  const now     = new Date();
+  const from = fromStr
+    ? new Date(fromStr + "T00:00:00")
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  const to = toStr
+    ? new Date(toStr + "T23:59:59")
+    : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+  // Transactions linked to this party
+  const txRows = await db
+    .select({
+      id: financialTransactionsTable.id,
+      number: financialTransactionsTable.number,
+      type: financialTransactionsTable.type,
+      amount: financialTransactionsTable.amount,
+      categoryName: expenseCategoriesTable.nameAr,
+      description: financialTransactionsTable.description,
+      createdAt: financialTransactionsTable.createdAt,
+    })
+    .from(financialTransactionsTable)
+    .leftJoin(expenseCategoriesTable, eq(financialTransactionsTable.categoryId, expenseCategoriesTable.id))
+    .where(eq(financialTransactionsTable.partyName, account));
+
+  // Customer invoices for this account name
+  const invRows = await db
+    .select({
+      id: invoicesTable.id,
+      number: invoicesTable.number,
+      total: invoicesTable.total,
+      paymentMethod: invoicesTable.paymentMethod,
+      createdAt: invoicesTable.createdAt,
+    })
+    .from(invoicesTable)
+    .leftJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
+    .where(and(eq(customersTable.name, account), eq(invoicesTable.status, "completed")));
+
+  const allEntries: any[] = [];
+  for (const tx of txRows) {
+    allEntries.push({
+      id: `tx-${tx.id}`, dbId: tx.id, number: tx.number,
+      // Receipt = money came IN to us FROM party → له (credit for us, debit for party)
+      debit:  tx.type === "payment" ? Number(tx.amount) : 0,  // عليه
+      credit: tx.type === "receipt" ? Number(tx.amount) : 0,  // له
+      description: tx.description ?? tx.categoryName ?? "",
+      type: tx.type, source: "transaction",
+      createdAt: tx.createdAt,
+    });
+  }
+  for (const inv of invRows) {
+    const isCredit = inv.paymentMethod === "credit";
+    allEntries.push({
+      id: `inv-${inv.id}`, dbId: inv.id, number: inv.number,
+      debit:  isCredit ? Number(inv.total) : 0,   // آجل = customer owes us = عليه
+      credit: !isCredit ? Number(inv.total) : 0,  // نقدي = received = له
+      description: `فاتورة مبيعات (${isCredit ? "آجل" : "نقدي"})`,
+      type: "invoice", source: "invoice",
+      createdAt: inv.createdAt,
+    });
+  }
+
+  allEntries.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const openingBalance = allEntries
+    .filter(e => new Date(e.createdAt) < from)
+    .reduce((s, e) => s + e.credit - e.debit, 0);
+
+  const period = allEntries.filter(e => { const d = new Date(e.createdAt); return d >= from && d <= to; });
+
+  let bal = openingBalance;
+  const rows = period.map((e, i) => {
+    bal += e.credit - e.debit;
+    return { ...e, balance: bal, rowNum: i + 1, createdAt: e.createdAt instanceof Date ? e.createdAt.toISOString() : e.createdAt };
+  });
+
+  res.json({
+    account, openingBalance,
+    totalDebit:  period.reduce((s, e) => s + e.debit,  0),
+    totalCredit: period.reduce((s, e) => s + e.credit, 0),
+    closingBalance: bal, rows,
+  });
+});
+
+// ─── Edit Transaction ─────────────────────────────────────────────────────────
+
+const TxUpdateBody = z.object({
+  type: z.enum(["receipt", "payment"]).optional(),
+  amount: z.coerce.number().positive().optional(),
+  categoryId: z.coerce.number().int().positive().optional().nullable(),
+  description: z.string().optional().nullable(),
+  partyName: z.string().optional().nullable(),
+  isInCashBox: z.boolean().optional(),
+});
+
+router.put("/finance/transactions/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id ?? "");
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const parsed = TxUpdateBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const upd: Record<string, unknown> = {};
+  if (parsed.data.type        !== undefined) upd.type        = parsed.data.type;
+  if (parsed.data.amount      !== undefined) upd.amount      = String(parsed.data.amount);
+  if (parsed.data.categoryId  !== undefined) upd.categoryId  = parsed.data.categoryId;
+  if (parsed.data.description !== undefined) upd.description = parsed.data.description;
+  if (parsed.data.partyName   !== undefined) upd.partyName   = parsed.data.partyName;
+  if (parsed.data.isInCashBox !== undefined) upd.isInCashBox = parsed.data.isInCashBox;
+
+  const [row] = await db
+    .update(financialTransactionsTable)
+    .set(upd)
+    .where(eq(financialTransactionsTable.id, id))
+    .returning();
+
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ ...row, amount: Number(row.amount), createdAt: row.createdAt.toISOString() });
+});
+
 export default router;
