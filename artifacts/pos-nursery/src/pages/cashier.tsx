@@ -51,6 +51,8 @@ export default function Cashier() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [isCustomerPickerOpen, setIsCustomerPickerOpen] = useState(false);
+  const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
+  const [editingPriceValue, setEditingPriceValue] = useState("");
   const printRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
@@ -80,8 +82,13 @@ export default function Cashier() {
       if (existing) {
         return prev.map(item => item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      return [...prev, { productId: product.id, productName: product.nameAr, price: product.salePrice, quantity: 1, discount: 0 }];
+      return [...prev, { productId: product.id, productName: product.nameAr, price: 0, quantity: 1, discount: 0 }];
     });
+    // auto-open price editor for newly added item
+    setTimeout(() => {
+      setEditingPriceId(product.id);
+      setEditingPriceValue("");
+    }, 50);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -108,6 +115,22 @@ export default function Cashier() {
 
   const removeItem = (productId: number) => {
     setCart(prev => prev.filter(item => item.productId !== productId));
+  };
+
+  const startEditingPrice = (item: CartItem) => {
+    setEditingPriceId(item.productId);
+    setEditingPriceValue(item.price === 0 ? "" : item.price.toString());
+  };
+
+  const commitPrice = (productId: number) => {
+    const parsed = parseFloat(editingPriceValue);
+    if (!isNaN(parsed) && parsed >= 0) {
+      setCart(prev => prev.map(item =>
+        item.productId === productId ? { ...item, price: parsed } : item
+      ));
+    }
+    setEditingPriceId(null);
+    setEditingPriceValue("");
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -418,7 +441,33 @@ export default function Cashier() {
                         <Plus size={14} />
                       </button>
                     </div>
-                    <p className="font-bold text-primary text-sm">{(item.price * item.quantity).toFixed(2)} د.أ</p>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {editingPriceId === item.productId ? (
+                        <input
+                          autoFocus
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={editingPriceValue}
+                          onChange={e => setEditingPriceValue(e.target.value)}
+                          onBlur={() => commitPrice(item.productId)}
+                          onKeyDown={e => { if (e.key === "Enter") commitPrice(item.productId); if (e.key === "Escape") setEditingPriceId(null); }}
+                          className="w-24 text-left font-bold text-primary text-sm border border-primary rounded-md px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                          placeholder="السعر"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => startEditingPrice(item)}
+                          className={`font-bold text-sm px-2 py-0.5 rounded-md transition-colors ${item.price === 0 ? "text-destructive bg-destructive/10 border border-destructive/30" : "text-primary hover:bg-primary/10"}`}
+                          title="اضغط لتعديل السعر"
+                        >
+                          {item.price === 0 ? "أدخل السعر" : `${item.price.toFixed(2)} د.أ`}
+                        </button>
+                      )}
+                      {item.price > 0 && item.quantity > 1 && (
+                        <span className="text-xs text-muted-foreground">{(item.price * item.quantity).toFixed(2)} د.أ</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -448,9 +497,12 @@ export default function Cashier() {
             </div>
           </div>
 
+          {cart.some(i => i.price === 0) && (
+            <p className="text-xs text-destructive text-center mb-2">يوجد أصناف بدون سعر — اضغط على السعر لتحديده</p>
+          )}
           <Button 
             className="w-full h-14 text-lg font-bold rounded-xl shadow-lg" 
-            disabled={cart.length === 0}
+            disabled={cart.length === 0 || cart.some(i => i.price === 0)}
             onClick={() => setIsPaymentOpen(true)}
           >
             إتمام الدفع
