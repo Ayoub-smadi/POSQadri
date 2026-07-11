@@ -1,7 +1,7 @@
 import { pgTable, serial, integer, numeric, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { employeesTable } from "./employees";
 
-export const transactionTypeEnum = pgEnum("transaction_type", ["bonus", "deduction"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["bonus", "deduction", "advance"]);
 
 export const salariesTable = pgTable("salaries", {
   id: serial("id").primaryKey(),

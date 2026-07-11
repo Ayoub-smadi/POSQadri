@@ -34,7 +34,7 @@ type EmployeePayroll = {
 type SalaryTransaction = {
   id: number;
   employeeId: number;
-  type: "bonus" | "deduction";
+  type: "bonus" | "deduction" | "advance";
   amount: number;
   note?: string | null;
   transactionDate: string;
@@ -290,11 +290,16 @@ export default function Payroll() {
                               className={`font-semibold ${
                                 tx.type === "bonus"
                                   ? "text-green-600 dark:text-green-400"
+                                  : tx.type === "advance"
+                                  ? "text-violet-600 dark:text-violet-400"
                                   : "text-red-600 dark:text-red-400"
                               }`}
                             >
                               {tx.type === "bonus" ? "+" : "-"}{tx.amount.toFixed(2)} د.أ
                             </span>
+                            {tx.type === "advance" && (
+                              <span className="text-xs bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full font-medium">💼 سلفة</span>
+                            )}
                             <span className="text-muted-foreground">{tx.note ?? ""}</span>
                           </div>
                           <div className="flex items-center gap-3">

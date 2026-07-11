@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql } from "drizzle-orm";
-import { db, employeesTable, salariesTable, salaryTransactionsTable } from "@workspace/db";
+import { db, employeesTable, salariesTable, salaryTransactionsTable, expenseCategoriesTable, financialTransactionsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { z } from "zod";
 
@@ -127,6 +127,66 @@ router.post("/payroll/:employeeId/transactions", requireAuth, async (req, res): 
     note: tx.note,
     transactionDate: tx.transactionDate.toISOString(),
     createdAt: tx.createdAt.toISOString(),
+  });
+});
+
+const AdvanceBody = z.object({
+  amount: z.coerce.number().min(0.01),
+  note: z.string().optional().nullable(),
+  isInCashBox: z.boolean().default(true),
+});
+
+router.post("/payroll/:employeeId/advance", requireAuth, async (req, res): Promise<void> => {
+  const params = EmpIdParam.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid employeeId" }); return; }
+
+  const parsed = AdvanceBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const [emp] = await db.select().from(employeesTable).where(eq(employeesTable.id, params.data.employeeId));
+  if (!emp) { res.status(404).json({ error: "Employee not found" }); return; }
+
+  // 1. Record advance as a salary deduction
+  const [tx] = await db.insert(salaryTransactionsTable).values({
+    employeeId: emp.id,
+    type: "advance",
+    amount: String(parsed.data.amount),
+    note: parsed.data.note ?? "سلفة راتب",
+    transactionDate: new Date(),
+  }).returning();
+
+  // 2. Find or create "سلف الرواتب" expense category
+  let [cat] = await db.select().from(expenseCategoriesTable).where(eq(expenseCategoriesTable.nameAr, "سلف الرواتب"));
+  if (!cat) {
+    [cat] = await db.insert(expenseCategoriesTable).values({
+      nameAr: "سلف الرواتب",
+      icon: "💼",
+      color: "#7c3aed",
+      categoryType: "expense",
+      isDefault: true,
+    }).returning();
+  }
+
+  // 3. Record a financial payment transaction in the cashbox
+  const number = `ADV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  await db.insert(financialTransactionsTable).values({
+    number,
+    type: "payment",
+    amount: String(parsed.data.amount),
+    categoryId: cat!.id,
+    description: parsed.data.note ?? `سلفة راتب`,
+    partyName: emp.nameAr,
+    isInCashBox: parsed.data.isInCashBox,
+    employeeId: emp.id,
+  });
+
+  res.status(201).json({
+    id: tx!.id,
+    employeeId: tx!.employeeId,
+    type: tx!.type,
+    amount: Number(tx!.amount),
+    note: tx!.note,
+    message: "تم صرف الدفعة وخصمها من الراتب",
   });
 });
 
