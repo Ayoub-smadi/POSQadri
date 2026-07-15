@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -142,7 +141,6 @@ function AccountInput({ value, onChange, accounts, placeholder }: { value: strin
 export default function Finance() {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [, setLocation] = useLocation();
   const [mainTab, setMainTab] = useState("treasury");
 
   const inv = () => qc.invalidateQueries({ queryKey: ["finance"] });
@@ -287,7 +285,7 @@ export default function Finance() {
   });
 
   const [poDlg, setPoDlg] = useState(false);
-  const [poF, setPoF] = useState({ supplierName: "", totalAmount: "", purchaseType: "cash" as "cash" | "credit", description: "" });
+  const [poF, setPoF] = useState({ supplierName: "", totalAmount: "", purchaseType: "cash" as "cash" | "credit", description: "", date: todayStr() });
 
   const createPoMut = useMutation({
     mutationFn: (d: object) => apiJson("/finance/purchases", { method: "POST", body: JSON.stringify(d) }).then(r => r.json()),
@@ -298,6 +296,36 @@ export default function Finance() {
     mutationFn: (id: number) => apiFetch(`/finance/purchases/${id}`, { method: "DELETE" }),
     onSuccess: () => { toast({ title: "تم الحذف" }); inv(); },
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // بيع — Daily Sales Quick Entry
+  // ═══════════════════════════════════════════════════════════════════════════
+  const [sellDlg, setSellDlg] = useState(false);
+  const [sellF, setSellF] = useState({ date: todayStr(), amount: "", note: "" });
+
+  const salesCategoryId = useMemo(
+    () => categories.find(c => c.nameAr === "مبيعات")?.id ?? null,
+    [categories]
+  );
+
+  const createSaleMut = useMutation({
+    mutationFn: (d: object) => apiJson("/finance/transactions", { method: "POST", body: JSON.stringify(d) }).then(r => r.json()),
+    onSuccess: () => { toast({ title: "تم تسجيل البيع ✓" }); inv(); setSellDlg(false); setSellF({ date: todayStr(), amount: "", note: "" }); },
+    onError: () => toast({ variant: "destructive", title: "حدث خطأ" }),
+  });
+
+  function submitSale() {
+    const amt = parseFloat(sellF.amount);
+    if (isNaN(amt) || amt <= 0) { toast({ variant: "destructive", title: "أدخل مبلغاً صحيحاً" }); return; }
+    createSaleMut.mutate({
+      type: "receipt",
+      amount: amt,
+      categoryId: salesCategoryId,
+      description: sellF.note || `مبيعات يوم ${sellF.date}`,
+      isInCashBox: true,
+      createdAt: new Date(`${sellF.date}T12:00:00`).toISOString(),
+    });
+  }
 
   const [payDlg, setPayDlg] = useState<{ open: boolean; po: PurchaseOrder | null }>({ open: false, po: null });
   const [payAmt, setPayAmt] = useState("");
@@ -605,7 +633,7 @@ export default function Finance() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setLocation("/")}
+                    onClick={() => { setSellF({ date: todayStr(), amount: "", note: "" }); setSellDlg(true); }}
                     className="py-3 rounded-xl border-2 border-border text-sm font-bold transition-all flex flex-col items-center gap-1 text-muted-foreground hover:border-green-500 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20"
                   >
                     <ShoppingCart size={20} /> بيع
@@ -897,7 +925,7 @@ export default function Finance() {
                   <p className="text-lg font-bold text-red-600">{fmt(purchases.filter(p=>p.purchaseType==="credit").reduce((s,p)=>s+p.remaining,0))}</p>
                 </div>
               </div>
-              <Button onClick={() => { setPoF({ supplierName: "", totalAmount: "", purchaseType: "cash", description: "" }); setPoDlg(true); }} className="gap-2 h-10">
+              <Button onClick={() => { setPoF({ supplierName: "", totalAmount: "", purchaseType: "cash", description: "", date: todayStr() }); setPoDlg(true); }} className="gap-2 h-10">
                 <Plus size={15} /> شراء جديد
               </Button>
             </div>
@@ -1066,15 +1094,59 @@ export default function Finance() {
               <Label>ملاحظة</Label>
               <Input placeholder="وصف المشتريات..." value={poF.description} onChange={e => setPoF(f => ({ ...f, description: e.target.value }))} />
             </div>
+            <div className="space-y-1.5">
+              <Label>التاريخ</Label>
+              <Input type="date" dir="ltr" value={poF.date} onChange={e => setPoF(f => ({ ...f, date: e.target.value }))} />
+            </div>
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setPoDlg(false)}>إلغاء</Button>
               <Button className="flex-1" onClick={() => {
                 const amt = parseFloat(poF.totalAmount);
                 if (isNaN(amt) || amt <= 0) { toast({ variant: "destructive", title: "أدخل مبلغاً صحيحاً" }); return; }
                 if (!poF.supplierName.trim()) { toast({ variant: "destructive", title: "أدخل اسم المورد" }); return; }
-                createPoMut.mutate({ supplierName: poF.supplierName, totalAmount: amt, purchaseType: poF.purchaseType, description: poF.description || null });
+                createPoMut.mutate({ supplierName: poF.supplierName, totalAmount: amt, purchaseType: poF.purchaseType, description: poF.description || null, createdAt: new Date(`${poF.date}T12:00:00`).toISOString() });
               }} disabled={createPoMut.isPending}>
                 {createPoMut.isPending && <Loader2 className="animate-spin ml-2" size={15} />} تسجيل
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Daily Sale Dialog ────────────────────────────────────────────────── */}
+      <Dialog open={sellDlg} onOpenChange={setSellDlg}>
+        <DialogContent dir="rtl" className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><ShoppingCart size={20} className="text-green-600" /> بيع (إجمالي مبيعات اليوم)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">سجّل إجمالي ما تم بيعه في يوم معيّن، ليظهر في حركة الخزينة كإيراد.</p>
+            <div className="space-y-1.5">
+              <Label>التاريخ</Label>
+              <Input type="date" dir="ltr" value={sellF.date} onChange={e => setSellF(f => ({ ...f, date: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>المبلغ (دينار) *</Label>
+              <Input
+                type="number" min="0.01" step="0.01" dir="ltr"
+                placeholder="0.00" value={sellF.amount}
+                onChange={e => setSellF(f => ({ ...f, amount: e.target.value }))}
+                className="text-lg font-bold h-11"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>ملاحظة (اختياري)</Label>
+              <Input placeholder="مثال: مبيعات نقدية..." value={sellF.note} onChange={e => setSellF(f => ({ ...f, note: e.target.value }))} />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setSellDlg(false)}>إلغاء</Button>
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={submitSale}
+                disabled={createSaleMut.isPending || !sellF.amount}
+              >
+                {createSaleMut.isPending && <Loader2 className="animate-spin ml-2" size={15} />}
+                تسجيل البيع
               </Button>
             </div>
           </div>

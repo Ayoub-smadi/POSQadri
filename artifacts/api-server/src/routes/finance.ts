@@ -29,12 +29,15 @@ const DEFAULT_CATEGORIES = [
   { nameAr: "قبض من عميل", icon: "💳", color: "#16a34a", categoryType: "income" as const, isDefault: true },
   { nameAr: "إيراد متنوع", icon: "💰", color: "#15803d", categoryType: "income" as const, isDefault: true },
   { nameAr: "قرض أو سلفة", icon: "🏦", color: "#7c2d12", categoryType: "both" as const, isDefault: true },
+  { nameAr: "مبيعات", icon: "🛒", color: "#059669", categoryType: "income" as const, isDefault: true },
 ];
 
 async function ensureDefaultCategories() {
-  const existing = await db.select({ id: expenseCategoriesTable.id }).from(expenseCategoriesTable).limit(1);
-  if (existing.length === 0) {
-    await db.insert(expenseCategoriesTable).values(DEFAULT_CATEGORIES);
+  const existing = await db.select({ nameAr: expenseCategoriesTable.nameAr }).from(expenseCategoriesTable);
+  const existingNames = new Set(existing.map(c => c.nameAr));
+  const missing = DEFAULT_CATEGORIES.filter(c => !existingNames.has(c.nameAr));
+  if (missing.length > 0) {
+    await db.insert(expenseCategoriesTable).values(missing);
   }
 }
 
@@ -166,6 +169,7 @@ const PurchaseBody = z.object({
   totalAmount: z.coerce.number().positive(),
   description: z.string().optional().nullable(),
   purchaseType: z.enum(["cash", "credit"]).default("cash"),
+  createdAt: z.string().optional().nullable(),
 });
 
 const PayPurchaseBody = z.object({
@@ -224,9 +228,11 @@ router.post("/finance/purchases", requireAuth, async (req, res): Promise<void> =
   // Find "دفعة موردين" category upfront
   const [cat] = await db.select().from(expenseCategoriesTable).where(eq(expenseCategoriesTable.nameAr, "دفعة موردين"));
 
+  const createdAt = parsed.data.createdAt ? new Date(parsed.data.createdAt) : undefined;
+
   // Wrap in DB transaction for atomicity
   const po = await db.transaction(async (tx) => {
-    const [newPo] = await tx.insert(purchaseOrdersTable).values({
+    const poValues: typeof purchaseOrdersTable.$inferInsert = {
       number: poNumber,
       supplierId: parsed.data.supplierId ?? null,
       supplierName: resolvedName,
@@ -236,14 +242,17 @@ router.post("/finance/purchases", requireAuth, async (req, res): Promise<void> =
       purchaseType: parsed.data.purchaseType,
       status: initialStatus,
       employeeId: req.session.employeeId ?? null,
-    }).returning();
+    };
+    if (createdAt) poValues.createdAt = createdAt;
+
+    const [newPo] = await tx.insert(purchaseOrdersTable).values(poValues).returning();
 
     if (!newPo) throw new Error("Failed to create purchase");
 
     // For cash purchase: auto-create payment transaction atomically
     if (!isCredit) {
       const txNumber = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      await tx.insert(financialTransactionsTable).values({
+      const txValues: typeof financialTransactionsTable.$inferInsert = {
         number: txNumber,
         type: "payment",
         amount: String(parsed.data.totalAmount),
@@ -253,7 +262,9 @@ router.post("/finance/purchases", requireAuth, async (req, res): Promise<void> =
         isInCashBox: true,
         purchaseOrderId: newPo.id,
         employeeId: req.session.employeeId ?? null,
-      });
+      };
+      if (createdAt) txValues.createdAt = createdAt;
+      await tx.insert(financialTransactionsTable).values(txValues);
     }
 
     return newPo;
