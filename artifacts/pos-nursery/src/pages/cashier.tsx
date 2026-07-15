@@ -170,7 +170,7 @@ export default function Cashier() {
           total,
           paymentMethod,
           cashierName: user.nameAr,
-          customerName: selectedCustomer?.nameAr,
+          customerName: selectedCustomer?.name,
           date: new Date(),
         };
         setCompletedInvoice(invoice);
@@ -285,7 +285,7 @@ export default function Cashier() {
             <PopoverTrigger asChild>
               <Button variant="outline" className="rounded-full gap-2 shrink-0">
                 <UserCircle size={18} />
-                {selectedCustomer ? selectedCustomer.nameAr : "زبون عام"}
+                {selectedCustomer ? selectedCustomer.name : "زبون عام"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-72 p-2" align="end">
@@ -316,7 +316,7 @@ export default function Cashier() {
                       className="w-full text-right px-3 py-2 rounded-lg hover:bg-muted text-sm flex items-center justify-between"
                       onClick={() => { setSelectedCustomer(c); setIsCustomerPickerOpen(false); }}
                     >
-                      <span>{c.nameAr}</span>
+                      <span>{c.name}</span>
                       {c.balance > 0 && <span className="text-xs text-destructive">دين: {c.balance.toFixed(2)}</span>}
                     </button>
                   ))}
@@ -548,7 +548,7 @@ export default function Cashier() {
             {paymentMethod === "credit" && (
               <div className="mt-4 p-3 rounded-xl bg-muted/50 text-sm">
                 {selectedCustomer ? (
-                  <span>سيتم تسجيل المبلغ كدين على: <strong>{selectedCustomer.nameAr}</strong></span>
+                  <span>سيتم تسجيل المبلغ كدين على: <strong>{selectedCustomer.name}</strong></span>
                 ) : (
                   <span className="text-destructive">يجب اختيار الزبون من الأعلى قبل الدفع بالدين</span>
                 )}

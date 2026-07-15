@@ -2,11 +2,12 @@ import { Layout } from "@/components/layout";
 import { useListCustomers, useDeleteCustomer } from "@workspace/api-client-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerDialog } from "@/components/customer-dialog";
+import { SettleDebtDialog } from "@/components/settle-debt-dialog";
 
 export default function Customers() {
   const [search, setSearch] = useState("");
@@ -17,6 +18,9 @@ export default function Customers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
 
+  const [settleOpen, setSettleOpen] = useState(false);
+  const [settlingCustomer, setSettlingCustomer] = useState<{ id: number; name: string; balance: number } | null>(null);
+
   const handleAdd = () => {
     setEditingCustomer(null);
     setDialogOpen(true);
@@ -25,6 +29,11 @@ export default function Customers() {
   const handleEdit = (customer: any) => {
     setEditingCustomer(customer);
     setDialogOpen(true);
+  };
+
+  const handleSettle = (customer: any) => {
+    setSettlingCustomer({ id: customer.id, name: customer.name, balance: Number(customer.balance) });
+    setSettleOpen(true);
   };
 
   const handleDelete = (id: number) => {
@@ -38,12 +47,19 @@ export default function Customers() {
     }
   };
 
+  const totalDebt = customers.reduce((sum: number, c: any) => sum + Math.max(0, Number(c.balance)), 0);
+
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-serif font-bold">العملاء</h1>
+            {totalDebt > 0 && (
+              <p className="text-sm text-destructive mt-1">
+                إجمالي الديون المستحقة: <span className="font-bold">{totalDebt.toFixed(2)} د.أ</span>
+              </p>
+            )}
           </div>
           <Button className="rounded-xl gap-2" onClick={handleAdd}><Plus size={18} />إضافة عميل</Button>
         </div>
@@ -63,21 +79,38 @@ export default function Customers() {
                 <TableHead>رقم الهاتف</TableHead>
                 <TableHead className="text-center">عدد المشتريات</TableHead>
                 <TableHead className="text-center">إجمالي الإنفاق</TableHead>
-                <TableHead className="text-center">الرصيد</TableHead>
+                <TableHead className="text-center">الدين</TableHead>
                 <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map(c => (
+              {customers.map((c: any) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell dir="ltr" className="text-right">{c.phone || '-'}</TableCell>
                   <TableCell className="text-center">{c.purchaseCount}</TableCell>
-                  <TableCell className="text-center text-primary font-bold">{c.totalSpent.toFixed(2)}</TableCell>
-                  <TableCell className={`text-center font-bold ${(c.balance ?? 0) > 0 ? 'text-destructive' : (c.balance ?? 0) < 0 ? 'text-primary' : ''}`}>
-                    {(c.balance ?? 0).toFixed(2)}
+                  <TableCell className="text-center text-primary font-bold">{Number(c.totalSpent).toFixed(2)}</TableCell>
+                  <TableCell className="text-center">
+                    {Number(c.balance) > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-lg text-sm">
+                        {Number(c.balance).toFixed(2)} د.أ
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-left">
+                    {Number(c.balance) > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-1 gap-1 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleSettle(c)}
+                      >
+                        <Wallet size={13} />
+                        تسوية
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
                       <Edit size={16} />
                     </Button>
@@ -87,6 +120,11 @@ export default function Customers() {
                   </TableCell>
                 </TableRow>
               ))}
+              {customers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">لا يوجد عملاء</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -96,6 +134,13 @@ export default function Customers() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         customer={editingCustomer}
+        onSuccess={refetch}
+      />
+
+      <SettleDebtDialog
+        open={settleOpen}
+        onOpenChange={setSettleOpen}
+        customer={settlingCustomer}
         onSuccess={refetch}
       />
     </Layout>
