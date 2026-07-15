@@ -301,7 +301,7 @@ export default function Finance() {
   // بيع — Daily Sales Quick Entry
   // ═══════════════════════════════════════════════════════════════════════════
   const [sellDlg, setSellDlg] = useState(false);
-  const [sellF, setSellF] = useState({ date: todayStr(), amount: "", note: "" });
+  const [sellF, setSellF] = useState({ date: todayStr(), amount: "", note: "", saleType: "cash" as "cash" | "credit", account: "" });
 
   const salesCategoryId = useMemo(
     () => categories.find(c => c.nameAr === "مبيعات")?.id ?? null,
@@ -310,19 +310,33 @@ export default function Finance() {
 
   const createSaleMut = useMutation({
     mutationFn: (d: object) => apiJson("/finance/transactions", { method: "POST", body: JSON.stringify(d) }).then(r => r.json()),
-    onSuccess: () => { toast({ title: "تم تسجيل البيع ✓" }); inv(); setSellDlg(false); setSellF({ date: todayStr(), amount: "", note: "" }); },
+    onSuccess: () => { toast({ title: "تم تسجيل البيع ✓" }); inv(); setSellDlg(false); setSellF({ date: todayStr(), amount: "", note: "", saleType: "cash", account: "" }); },
     onError: () => toast({ variant: "destructive", title: "حدث خطأ" }),
+  });
+
+  const createCustomerFromSaleMut = useMutation({
+    mutationFn: (name: string) => apiJson("/customers", { method: "POST", body: JSON.stringify({ name, balance: 0 }) }).then(r => r.json()),
+    onSuccess: (data: any) => {
+      setSellF(f => ({ ...f, account: data.name }));
+      qc.invalidateQueries({ queryKey: ["finance", "accounts"] });
+      toast({ title: `تم إضافة الحساب: ${data.name} ✓` });
+    },
+    onError: () => toast({ variant: "destructive", title: "حدث خطأ أثناء إضافة الحساب" }),
   });
 
   function submitSale() {
     const amt = parseFloat(sellF.amount);
     if (isNaN(amt) || amt <= 0) { toast({ variant: "destructive", title: "أدخل مبلغاً صحيحاً" }); return; }
+    if (sellF.saleType === "credit" && !sellF.account.trim()) {
+      toast({ variant: "destructive", title: "اختر حساباً للبيع الآجل" }); return;
+    }
     createSaleMut.mutate({
       type: "receipt",
       amount: amt,
       categoryId: salesCategoryId,
-      description: sellF.note || `مبيعات يوم ${sellF.date}`,
-      isInCashBox: true,
+      description: sellF.note || (sellF.saleType === "credit" ? `مبيعات آجل — ${sellF.account}` : `مبيعات يوم ${sellF.date}`),
+      isInCashBox: sellF.saleType === "cash",
+      partyName: sellF.account.trim() || null,
       createdAt: new Date(`${sellF.date}T12:00:00`).toISOString(),
     });
   }
@@ -1121,6 +1135,59 @@ export default function Finance() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <p className="text-sm text-muted-foreground">سجّل إجمالي ما تم بيعه في يوم معيّن، ليظهر في حركة الخزينة كإيراد.</p>
+
+            {/* نوع البيع: نقدي / آجل */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setSellF(f => ({ ...f, saleType: "cash" }))}
+                className={`py-3 rounded-xl border-2 text-sm font-bold transition-all flex flex-col items-center gap-1 ${sellF.saleType === "cash" ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700" : "border-border text-muted-foreground"}`}
+              >
+                💵 نقدي
+              </button>
+              <button
+                onClick={() => setSellF(f => ({ ...f, saleType: "credit" }))}
+                className={`py-3 rounded-xl border-2 text-sm font-bold transition-all flex flex-col items-center gap-1 ${sellF.saleType === "credit" ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700" : "border-border text-muted-foreground"}`}
+              >
+                🧾 آجل
+              </button>
+            </div>
+
+            {/* الحساب — يظهر دائماً، إلزامي عند الآجل */}
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1">
+                الحساب {sellF.saleType === "credit" && <span className="text-destructive">*</span>}
+              </Label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <AccountInput
+                    value={sellF.account}
+                    onChange={v => setSellF(f => ({ ...f, account: v }))}
+                    accounts={accounts}
+                    placeholder={sellF.saleType === "credit" ? "اختر أو أدخل اسم العميل..." : "اختياري..."}
+                  />
+                </div>
+                {/* زر إضافة حساب جديد إذا ما موجود */}
+                {sellF.account.trim() && !accounts.includes(sellF.account.trim()) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 px-3 text-xs border-primary text-primary hover:bg-primary/10 whitespace-nowrap"
+                    onClick={() => createCustomerFromSaleMut.mutate(sellF.account.trim())}
+                    disabled={createCustomerFromSaleMut.isPending}
+                  >
+                    {createCustomerFromSaleMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                    إضافة
+                  </Button>
+                )}
+              </div>
+              {sellF.account.trim() && !accounts.includes(sellF.account.trim()) && (
+                <p className="text-xs text-amber-600">الحساب غير موجود — اضغط "إضافة" لإنشائه كعميل جديد</p>
+              )}
+              {sellF.saleType === "credit" && (
+                <p className="text-xs text-muted-foreground">البيع الآجل لن يُسجَّل في الخزينة حتى يُسدَّد الدين</p>
+              )}
+            </div>
+
             <div className="space-y-1.5">
               <Label>التاريخ</Label>
               <Input type="date" dir="ltr" value={sellF.date} onChange={e => setSellF(f => ({ ...f, date: e.target.value }))} />
@@ -1141,12 +1208,12 @@ export default function Finance() {
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setSellDlg(false)}>إلغاء</Button>
               <Button
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className={`flex-1 text-white ${sellF.saleType === "credit" ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"}`}
                 onClick={submitSale}
-                disabled={createSaleMut.isPending || !sellF.amount}
+                disabled={createSaleMut.isPending || !sellF.amount || (sellF.saleType === "credit" && !sellF.account.trim())}
               >
                 {createSaleMut.isPending && <Loader2 className="animate-spin ml-2" size={15} />}
-                تسجيل البيع
+                {sellF.saleType === "credit" ? "تسجيل بيع آجل" : "تسجيل البيع"}
               </Button>
             </div>
           </div>
