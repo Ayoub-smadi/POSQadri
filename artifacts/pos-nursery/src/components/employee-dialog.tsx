@@ -16,6 +16,7 @@ const schema = z.object({
   email: z.string().email("بريد إلكتروني غير صالح"),
   phone: z.string().optional(),
   role: z.enum(["admin", "cashier"]),
+  jobTitle: z.string().optional(),
   password: z.string().optional(),
 });
 
@@ -36,7 +37,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSuccess }: Prop
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { nameAr: "", email: "", phone: "", role: "cashier", password: "" },
+    defaultValues: { nameAr: "", email: "", phone: "", role: "cashier", jobTitle: "", password: "" },
   });
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSuccess }: Prop
         email: employee?.email ?? "",
         phone: employee?.phone ?? "",
         role: employee?.role ?? "cashier",
+        jobTitle: employee?.jobTitle ?? "",
         password: "",
       });
     }

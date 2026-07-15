@@ -12,6 +12,7 @@ export interface EmployeeInput {
   email: string;
   phone?: string | null;
   role: EmployeeInputRole;
+  jobTitle?: string | null;
   password?: string;
   avatarUrl?: string | null;
 }

@@ -22,6 +22,7 @@ function toPublicEmployee(employee: typeof employeesTable.$inferSelect) {
     email: employee.email,
     phone: employee.phone,
     role: employee.role,
+    jobTitle: employee.jobTitle,
     avatarUrl: employee.avatarUrl,
     createdAt: employee.createdAt.toISOString(),
   };
@@ -58,6 +59,7 @@ router.post("/employees", requireAuth, async (req, res): Promise<void> => {
       email: parsed.data.email,
       phone: parsed.data.phone,
       role: parsed.data.role,
+      jobTitle: parsed.data.jobTitle,
       avatarUrl: parsed.data.avatarUrl,
       passwordHash,
     })

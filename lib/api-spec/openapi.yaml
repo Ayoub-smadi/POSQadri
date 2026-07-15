@@ -686,6 +686,9 @@ components:
         role:
           type: string
           enum: [admin, cashier]
+        jobTitle:
+          type: string
+          nullable: true
         avatarUrl:
           type: string
           nullable: true
@@ -706,6 +709,9 @@ components:
         role:
           type: string
           enum: [admin, cashier]
+        jobTitle:
+          type: string
+          nullable: true
         password:
           type: string
         avatarUrl:

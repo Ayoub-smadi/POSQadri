@@ -13,6 +13,7 @@ export interface Employee {
   email: string;
   phone?: string | null;
   role: EmployeeRole;
+  jobTitle?: string | null;
   avatarUrl?: string | null;
   createdAt: string;
 }

@@ -11,6 +11,7 @@ export const employeesTable = pgTable("employees", {
   passwordHash: text("password_hash").notNull(),
   phone: text("phone"),
   role: employeeRoleEnum("role").notNull().default("cashier"),
+  jobTitle: text("job_title"),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

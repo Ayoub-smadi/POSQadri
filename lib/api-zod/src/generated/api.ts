@@ -71,6 +71,7 @@ export const LoginResponse = zod.object({
   "email": zod.string(),
   "phone": zod.string().nullish(),
   "role": zod.enum(['admin', 'cashier']),
+  "jobTitle": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })
@@ -91,6 +92,7 @@ export const GetCurrentUserResponse = zod.object({
   "email": zod.string(),
   "phone": zod.string().nullish(),
   "role": zod.enum(['admin', 'cashier']),
+  "jobTitle": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })
@@ -499,6 +501,7 @@ export const ListEmployeesResponseItem = zod.object({
   "email": zod.string(),
   "phone": zod.string().nullish(),
   "role": zod.enum(['admin', 'cashier']),
+  "jobTitle": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })
@@ -513,6 +516,7 @@ export const CreateEmployeeBody = zod.object({
   "email": zod.string(),
   "phone": zod.string().nullish(),
   "role": zod.enum(['admin', 'cashier']),
+  "jobTitle": zod.string().nullish(),
   "password": zod.string().optional(),
   "avatarUrl": zod.string().nullish()
 })
@@ -523,6 +527,7 @@ export const CreateEmployeeResponse = zod.object({
   "email": zod.string(),
   "phone": zod.string().nullish(),
   "role": zod.enum(['admin', 'cashier']),
+  "jobTitle": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })
@@ -540,6 +545,7 @@ export const UpdateEmployeeBody = zod.object({
   "email": zod.string(),
   "phone": zod.string().nullish(),
   "role": zod.enum(['admin', 'cashier']),
+  "jobTitle": zod.string().nullish(),
   "password": zod.string().optional(),
   "avatarUrl": zod.string().nullish()
 })
@@ -550,6 +556,7 @@ export const UpdateEmployeeResponse = zod.object({
   "email": zod.string(),
   "phone": zod.string().nullish(),
   "role": zod.enum(['admin', 'cashier']),
+  "jobTitle": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })

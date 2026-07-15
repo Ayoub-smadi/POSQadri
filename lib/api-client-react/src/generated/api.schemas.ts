@@ -28,6 +28,7 @@ export interface Employee {
   email: string;
   phone?: string | null;
   role: EmployeeRole;
+  jobTitle?: string | null;
   avatarUrl?: string | null;
   createdAt: string;
 }
@@ -45,6 +46,7 @@ export interface EmployeeInput {
   email: string;
   phone?: string | null;
   role: EmployeeInputRole;
+  jobTitle?: string | null;
   password?: string;
   avatarUrl?: string | null;
 }
