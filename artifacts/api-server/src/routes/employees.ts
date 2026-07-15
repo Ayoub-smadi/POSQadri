@@ -39,6 +39,15 @@ router.post("/employees", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const [existing] = await db
+    .select()
+    .from(employeesTable)
+    .where(eq(employeesTable.email, parsed.data.email));
+  if (existing) {
+    res.status(400).json({ error: "البريد الإلكتروني مستخدم مسبقاً" });
+    return;
+  }
+
   const password = parsed.data.password ?? "123456";
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -73,6 +82,17 @@ router.patch("/employees/:id", requireAuth, async (req, res): Promise<void> => {
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
+  }
+
+  if (parsed.data.email) {
+    const [existing] = await db
+      .select()
+      .from(employeesTable)
+      .where(eq(employeesTable.email, parsed.data.email));
+    if (existing && existing.id !== params.data.id) {
+      res.status(400).json({ error: "البريد الإلكتروني مستخدم مسبقاً" });
+      return;
+    }
   }
 
   const { password, ...rest } = parsed.data;

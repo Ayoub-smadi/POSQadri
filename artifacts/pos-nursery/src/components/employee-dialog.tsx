@@ -63,7 +63,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSuccess }: Prop
 
       updateEmployee.mutate({ id: employee.id, data: payload }, {
         onSuccess: () => { toast({ title: "تم تحديث بيانات الموظف" }); onSuccess(); onOpenChange(false); },
-        onError: () => toast({ variant: "destructive", title: "حدث خطأ أثناء التحديث" }),
+        onError: (err: any) => toast({ variant: "destructive", title: "حدث خطأ أثناء التحديث", description: err?.data?.error || err?.message }),
       });
     } else {
       createEmployee.mutate({
@@ -76,7 +76,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSuccess }: Prop
         }
       }, {
         onSuccess: () => { toast({ title: "تم إضافة الموظف" }); onSuccess(); onOpenChange(false); },
-        onError: () => toast({ variant: "destructive", title: "حدث خطأ أثناء الإضافة" }),
+        onError: (err: any) => toast({ variant: "destructive", title: "حدث خطأ أثناء الإضافة", description: err?.data?.error || err?.message }),
       });
     }
   }
