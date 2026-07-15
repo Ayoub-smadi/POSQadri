@@ -1,15 +1,20 @@
-# [Project name]
+# Al Kadri Plant Nursery POS (نظام كاشير المشتل)
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An Arabic-language point-of-sale and management system for a plant nursery: cashier checkout, inventory/products, suppliers, customers, employees, payroll, and finance/reporting pages.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- The app runs as three Replit artifacts, each bound to its own workflow (already configured and running):
+  - `artifacts/pos-nursery: web` — frontend (Vite/React), served at `/`, local port 22193
+  - `artifacts/api-server: API Server` — backend (Express), served at `/api`, local port 8080
+  - `artifacts/mockup-sandbox: ...` — design/canvas preview, served at `/__mockup` (only needed for canvas work)
+- The frontend and API workflows require the `PORT` (and for the frontend, `BASE_PATH`) env vars from each artifact's `.replit-artifact/artifact.toml` — already baked into the workflow commands.
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter db run push` — push DB schema changes (dev only)
+- `pnpm --filter db run seed` — seed demo data (admin@nursery.com / cashier@nursery.com, password: `admin123`)
+- Required env: `DATABASE_URL` — Postgres connection string (already provisioned in this repl)
 
 ## Stack
 
