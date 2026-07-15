@@ -647,7 +647,7 @@ export default function Finance() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => { setSellF({ date: todayStr(), amount: "", note: "" }); setSellDlg(true); }}
+                    onClick={() => { setSellF({ date: todayStr(), amount: "", note: "", saleType: "cash", account: "" }); setSellDlg(true); }}
                     className="py-3 rounded-xl border-2 border-border text-sm font-bold transition-all flex flex-col items-center gap-1 text-muted-foreground hover:border-green-500 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20"
                   >
                     <ShoppingCart size={20} /> بيع
