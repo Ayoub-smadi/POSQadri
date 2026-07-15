@@ -308,9 +308,29 @@ export default function Finance() {
     [categories]
   );
 
-  const createSaleMut = useMutation({
+  // نقدي: receipt transaction داخل الخزينة
+  const createCashSaleMut = useMutation({
     mutationFn: (d: object) => apiJson("/finance/transactions", { method: "POST", body: JSON.stringify(d) }).then(r => r.json()),
-    onSuccess: () => { toast({ title: "تم تسجيل البيع ✓" }); inv(); setSellDlg(false); setSellF({ date: todayStr(), amount: "", note: "", saleType: "cash", account: "" }); },
+    onSuccess: () => {
+      toast({ title: "تم تسجيل البيع النقدي ✓" });
+      inv();
+      setSellDlg(false);
+      setSellF({ date: todayStr(), amount: "", note: "", saleType: "cash", account: "" });
+    },
+    onError: () => toast({ variant: "destructive", title: "حدث خطأ" }),
+  });
+
+  // آجل: receipt خارج الخزينة + تحديث رصيد الزبون
+  const createCreditSaleMut = useMutation({
+    mutationFn: (d: object) => apiJson("/finance/credit-sale", { method: "POST", body: JSON.stringify(d) }).then(r => r.json()),
+    onSuccess: (data: any) => {
+      toast({ title: `تم تسجيل بيع آجل ✓ — رصيد ${data.customer.name}: ${Number(data.customer.balance).toFixed(2)} د.أ` });
+      inv();
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["finance", "accounts"] });
+      setSellDlg(false);
+      setSellF({ date: todayStr(), amount: "", note: "", saleType: "cash", account: "" });
+    },
     onError: () => toast({ variant: "destructive", title: "حدث خطأ" }),
   });
 
@@ -330,16 +350,29 @@ export default function Finance() {
     if (sellF.saleType === "credit" && !sellF.account.trim()) {
       toast({ variant: "destructive", title: "اختر حساباً للبيع الآجل" }); return;
     }
-    createSaleMut.mutate({
-      type: "receipt",
-      amount: amt,
-      categoryId: salesCategoryId,
-      description: sellF.note || (sellF.saleType === "credit" ? `مبيعات آجل — ${sellF.account}` : `مبيعات يوم ${sellF.date}`),
-      isInCashBox: sellF.saleType === "cash",
-      partyName: sellF.account.trim() || null,
-      createdAt: new Date(`${sellF.date}T12:00:00`).toISOString(),
-    });
+    const dateIso = new Date(`${sellF.date}T12:00:00`).toISOString();
+
+    if (sellF.saleType === "credit") {
+      createCreditSaleMut.mutate({
+        customerName: sellF.account.trim(),
+        amount: amt,
+        description: sellF.note || `بيع آجل — ${sellF.account}`,
+        createdAt: dateIso,
+      });
+    } else {
+      createCashSaleMut.mutate({
+        type: "receipt",
+        amount: amt,
+        categoryId: salesCategoryId,
+        description: sellF.note || `مبيعات يوم ${sellF.date}`,
+        isInCashBox: true,
+        partyName: sellF.account.trim() || null,
+        createdAt: dateIso,
+      });
+    }
   }
+
+  const isSalePending = createCashSaleMut.isPending || createCreditSaleMut.isPending;
 
   const [payDlg, setPayDlg] = useState<{ open: boolean; po: PurchaseOrder | null }>({ open: false, po: null });
   const [payAmt, setPayAmt] = useState("");
@@ -1210,9 +1243,9 @@ export default function Finance() {
               <Button
                 className={`flex-1 text-white ${sellF.saleType === "credit" ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"}`}
                 onClick={submitSale}
-                disabled={createSaleMut.isPending || !sellF.amount || (sellF.saleType === "credit" && !sellF.account.trim())}
+                disabled={isSalePending || !sellF.amount || (sellF.saleType === "credit" && !sellF.account.trim())}
               >
-                {createSaleMut.isPending && <Loader2 className="animate-spin ml-2" size={15} />}
+                {isSalePending && <Loader2 className="animate-spin ml-2" size={15} />}
                 {sellF.saleType === "credit" ? "تسجيل بيع آجل" : "تسجيل البيع"}
               </Button>
             </div>

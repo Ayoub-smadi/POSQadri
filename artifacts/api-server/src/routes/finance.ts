@@ -625,6 +625,77 @@ router.get("/finance/treasury", requireAuth, async (req, res): Promise<void> => 
   res.json({ openingBalance, netPeriod, closingBalance: openingBalance + netPeriod, totalIn, totalOut, rows: withBalance });
 });
 
+// ─── Credit Sale (بيع آجل) ───────────────────────────────────────────────────
+// Creates the financial transaction AND increments the customer's balance atomically.
+
+const CreditSaleBody = z.object({
+  amount: z.coerce.number().positive(),
+  customerName: z.string().min(1),
+  description: z.string().optional().nullable(),
+  createdAt: z.string().optional().nullable(),
+});
+
+router.post("/finance/credit-sale", requireAuth, async (req, res): Promise<void> => {
+  const parsed = CreditSaleBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const { amount, customerName, description, createdAt: createdAtStr } = parsed.data;
+
+  const [salesCat] = await db
+    .select()
+    .from(expenseCategoriesTable)
+    .where(eq(expenseCategoriesTable.nameAr, "مبيعات"));
+
+  const number = `RCV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const createdAt = createdAtStr ? new Date(createdAtStr) : undefined;
+
+  const result = await db.transaction(async (tx) => {
+    // 1. Insert receipt transaction (NOT in cash box — money not received yet)
+    const txValues: typeof financialTransactionsTable.$inferInsert = {
+      number,
+      type: "receipt",
+      amount: String(amount),
+      categoryId: salesCat?.id ?? null,
+      description: description ?? `بيع آجل — ${customerName}`,
+      partyName: customerName,
+      isInCashBox: false,
+      employeeId: req.session.employeeId ?? null,
+    };
+    if (createdAt) txValues.createdAt = createdAt;
+
+    const [txRow] = await tx.insert(financialTransactionsTable).values(txValues).returning();
+
+    // 2. Find customer by name (case-insensitive) and increment balance
+    const [existing] = await tx
+      .select()
+      .from(customersTable)
+      .where(sql`lower(name) = lower(${customerName})`);
+
+    let customer;
+    if (existing) {
+      const newBalance = Number(existing.balance) + amount;
+      [customer] = await tx
+        .update(customersTable)
+        .set({ balance: String(newBalance) })
+        .where(eq(customersTable.id, existing.id))
+        .returning();
+    } else {
+      // Create new customer with this debt as starting balance
+      [customer] = await tx
+        .insert(customersTable)
+        .values({ name: customerName, balance: String(amount) })
+        .returning();
+    }
+
+    return { transaction: txRow, customer };
+  });
+
+  res.status(201).json({
+    transaction: { ...result.transaction, amount: Number(result.transaction!.amount), createdAt: result.transaction!.createdAt.toISOString() },
+    customer: { ...result.customer, balance: Number(result.customer!.balance) },
+  });
+});
+
 // ─── Accounts (Parties) List ──────────────────────────────────────────────────
 
 router.get("/finance/accounts", requireAuth, async (_req, res): Promise<void> => {
