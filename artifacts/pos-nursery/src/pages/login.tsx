@@ -55,7 +55,7 @@ export default function Login() {
   }
 
   function fillCredentials(role: "admin" | "cashier") {
-    const email = role === "admin" ? "admin@pos.com" : "cashier@pos.com";
+    const email = role === "admin" ? "admin@nursery.com" : "cashier@nursery.com";
     form.setValue("email", email, { shouldValidate: true });
     form.setValue("password", "", { shouldValidate: false });
     setTimeout(() => {
