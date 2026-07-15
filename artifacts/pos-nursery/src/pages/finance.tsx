@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -141,6 +142,8 @@ function AccountInput({ value, onChange, accounts, placeholder }: { value: strin
 export default function Finance() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [mainTab, setMainTab] = useState("treasury");
 
   const inv = () => qc.invalidateQueries({ queryKey: ["finance"] });
 
@@ -381,7 +384,7 @@ export default function Finance() {
         </div>
 
         {/* ── Main Tabs ── */}
-        <Tabs defaultValue="treasury" className="space-y-0">
+        <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-0">
           <TabsList className="w-full justify-start bg-muted/40 rounded-xl h-auto p-1 gap-1 flex-wrap">
             <TabsTrigger value="treasury" className="gap-2 rounded-lg py-2 px-4 text-sm">
               <Wallet size={15} /> حركة الخزينة
@@ -632,6 +635,24 @@ export default function Finance() {
                     className={`py-3 rounded-xl border-2 text-sm font-bold transition-all flex flex-col items-center gap-1 ${dType === "receipt" ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700" : "border-border text-muted-foreground"}`}
                   >
                     <ArrowDownCircle size={20} /> قبض
+                  </button>
+                </div>
+
+                {/* بيع / شراء — quick shortcuts */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/")}
+                    className="py-3 rounded-xl border-2 border-border text-sm font-bold transition-all flex flex-col items-center gap-1 text-muted-foreground hover:border-green-500 hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-900/20"
+                  >
+                    <ShoppingCart size={20} /> بيع
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMainTab("purchases"); setPoDlg(true); }}
+                    className="py-3 rounded-xl border-2 border-border text-sm font-bold transition-all flex flex-col items-center gap-1 text-muted-foreground hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20"
+                  >
+                    <CreditCard size={20} /> شراء
                   </button>
                 </div>
 
