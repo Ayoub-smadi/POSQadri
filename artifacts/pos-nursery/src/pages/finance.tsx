@@ -316,40 +316,6 @@ export default function Finance() {
   const [catDlg, setCatDlg] = useState(false);
   const [catF, setCatF] = useState({ nameAr: "", icon: "💰", color: "#6b7280", categoryType: "expense" as "expense" | "income" | "both" });
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // دفعة راتب (Salary Advance)
-  // ═══════════════════════════════════════════════════════════════════════════
-  const [advDlg, setAdvDlg] = useState(false);
-  const [advEmpId, setAdvEmpId] = useState("");
-  const [advAmt, setAdvAmt] = useState("");
-  const [advNote, setAdvNote] = useState("");
-  const [advInBox, setAdvInBox] = useState(true);
-
-  const { data: employees = [] } = useQuery<{ id: number; nameAr: string; role: string }[]>({
-    queryKey: ["employees"],
-    queryFn: () => apiFetch("/employees").then(r => r.json()),
-  });
-
-  const advanceMut = useMutation({
-    mutationFn: (d: { employeeId: number; amount: number; note?: string; isInCashBox: boolean }) =>
-      apiJson(`/payroll/${d.employeeId}/advance`, { method: "POST", body: JSON.stringify({ amount: d.amount, note: d.note, isInCashBox: d.isInCashBox }) }).then(r => r.json()),
-    onSuccess: () => {
-      toast({ title: "✓ تم صرف الدفعة وخصمها من الراتب" });
-      inv();
-      setAdvDlg(false);
-      setAdvAmt(""); setAdvEmpId(""); setAdvNote("");
-    },
-    onError: () => toast({ variant: "destructive", title: "حدث خطأ أثناء الصرف" }),
-  });
-
-  function submitAdvance() {
-    const empId = parseInt(advEmpId);
-    const amt = parseFloat(advAmt);
-    if (isNaN(empId) || empId <= 0) { toast({ variant: "destructive", title: "اختر الموظف أولاً" }); return; }
-    if (isNaN(amt) || amt <= 0) { toast({ variant: "destructive", title: "أدخل مبلغاً صحيحاً" }); return; }
-    advanceMut.mutate({ employeeId: empId, amount: amt, note: advNote || undefined, isInCashBox: advInBox });
-  }
-
   const createCatMut = useMutation({
     mutationFn: (d: object) => apiJson("/finance/categories", { method: "POST", body: JSON.stringify(d) }).then(r => r.json()),
     onSuccess: () => { toast({ title: "تم ✓" }); qc.invalidateQueries({ queryKey: ["finance", "categories"] }); setCatDlg(false); },
@@ -434,9 +400,6 @@ export default function Finance() {
                 </Button>
                 <Button size="sm" className="h-8 gap-1.5 bg-red-600 hover:bg-red-700 text-white" onClick={() => openTxDlg("payment")}>
                   <ArrowUpCircle size={14} /> صرف
-                </Button>
-                <Button size="sm" className="h-8 gap-1.5 bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setAdvDlg(true)}>
-                  💼 دفعة راتب
                 </Button>
                 {selectedRow && selectedRow.type !== "invoice" && (
                   <>
@@ -1150,69 +1113,6 @@ export default function Finance() {
                 payPoMut.mutate({ id: payDlg.po.id, a, b: payInBox });
               }} disabled={payPoMut.isPending}>
                 {payPoMut.isPending && <Loader2 className="animate-spin ml-2" size={15} />} تسجيل الدفعة
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ─── Salary Advance Dialog ────────────────────────────────────────────── */}
-      <Dialog open={advDlg} onOpenChange={setAdvDlg}>
-        <DialogContent dir="rtl" className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">💼 دفعة راتب (سلفة)</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <p className="text-sm text-muted-foreground">تُصرف الدفعة من الخزينة وتُخصم تلقائياً من راتب الموظف.</p>
-
-            <div className="space-y-1.5">
-              <Label>الموظف *</Label>
-              <Select value={advEmpId} onValueChange={setAdvEmpId}>
-                <SelectTrigger><SelectValue placeholder="اختر الموظف..." /></SelectTrigger>
-                <SelectContent>
-                  {(employees as any[]).map((e: any) => (
-                    <SelectItem key={e.id} value={String(e.id)}>
-                      {e.nameAr} — {e.role === "admin" ? "مدير" : "كاشير"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>المبلغ (دينار) *</Label>
-              <Input
-                type="number" min="0.01" step="0.01" dir="ltr"
-                placeholder="0.00" value={advAmt}
-                onChange={e => setAdvAmt(e.target.value)}
-                className="text-lg font-bold h-11"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>ملاحظة (اختياري)</Label>
-              <Input placeholder="مثال: سلفة شهر يوليو..." value={advNote} onChange={e => setAdvNote(e.target.value)} />
-            </div>
-
-            <div className="flex items-center gap-3 bg-muted/40 rounded-xl p-3">
-              <button
-                type="button" onClick={() => setAdvInBox(!advInBox)}
-                className={`w-10 h-5 rounded-full transition-colors flex-shrink-0 relative ${advInBox ? "bg-primary" : "bg-muted-foreground/30"}`}
-              >
-                <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all shadow ${advInBox ? "right-0.5" : "left-0.5"}`} />
-              </button>
-              <span className="text-sm">{advInBox ? "صرف من الصندوق" : "صرف خارج الصندوق"}</span>
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setAdvDlg(false)}>إلغاء</Button>
-              <Button
-                className="flex-1 bg-violet-600 hover:bg-violet-700"
-                onClick={submitAdvance}
-                disabled={advanceMut.isPending || !advEmpId || !advAmt}
-              >
-                {advanceMut.isPending && <Loader2 className="animate-spin ml-2" size={15} />}
-                صرف الدفعة
               </Button>
             </div>
           </div>
