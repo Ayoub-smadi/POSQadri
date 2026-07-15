@@ -33,7 +33,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=22193 BASE_PATH=/ pnpm --filter @workspace/pos-nursery run dev"
+args = "pnpm install && PORT=22193 BASE_PATH=/ pnpm --filter @workspace/pos-nursery run dev"
 waitForPort = 22193
 
 [[workflows.workflow]]
@@ -42,7 +42,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
+args = "pnpm install && PORT=8080 pnpm --filter @workspace/api-server run dev"
 waitForPort = 8080
 
 [workflows.workflow.metadata]
@@ -59,6 +59,10 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[[ports]]
+localPort = 22193
+externalPort = 80
 
 [[ports]]
 localPort = 8080
