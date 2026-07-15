@@ -140,8 +140,8 @@ export default function Login() {
         </div>
       </div>
       <div className="hidden lg:block flex-1 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex items-end p-12">
+        <div className="absolute inset-0 bg-[url('/nursery-hero.jpg')] bg-cover bg-center"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/95 via-primary/20 to-transparent flex items-end p-12">
           <div className="text-primary-foreground max-w-lg">
             <h2 className="text-4xl font-serif font-bold mb-4 leading-tight">نظام إدارة متكامل للمشاتل الزراعية</h2>
             <p className="text-primary-foreground/80 text-lg leading-relaxed">
