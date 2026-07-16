@@ -31,6 +31,9 @@ async function buildPayrollRow(emp: typeof employeesTable.$inferSelect) {
   const totalDeduction = transactions
     .filter((t) => t.type === "deduction")
     .reduce((s, t) => s + Number(t.amount), 0);
+  const totalAdvance = transactions
+    .filter((t) => t.type === "advance")
+    .reduce((s, t) => s + Number(t.amount), 0);
 
   return {
     employeeId: emp.id,
@@ -39,7 +42,8 @@ async function buildPayrollRow(emp: typeof employeesTable.$inferSelect) {
     baseSalary,
     totalBonus,
     totalDeduction,
-    netSalary: baseSalary + totalBonus - totalDeduction,
+    totalAdvance,
+    netSalary: baseSalary + totalBonus - totalDeduction - totalAdvance,
   };
 }
 
