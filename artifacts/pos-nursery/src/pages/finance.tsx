@@ -13,8 +13,9 @@ import {
   Loader2, Plus, Trash2, Pencil, ArrowDownCircle, ArrowUpCircle,
   Wallet, TrendingUp, TrendingDown, Tag, RefreshCw, Search,
   ShoppingCart, CreditCard, BookOpen, ClipboardList, CheckCircle2,
+  ChevronRight, ChevronLeft, CalendarDays,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays, isToday } from "date-fns";
 import { ar } from "date-fns/locale";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -233,6 +234,9 @@ export default function Finance() {
   // ═══════════════════════════════════════════════════════════════════════════
   // TAB 2 — اليومية (Daily Entry)
   // ═══════════════════════════════════════════════════════════════════════════
+  const [dDate, setDDate] = useState<Date>(() => new Date());
+  const dDateStr = format(dDate, "yyyy-MM-dd");
+
   const [dType, setDType] = useState<"receipt" | "payment">("payment");
   const [dAmt, setDAmt] = useState("");
   const [dAccount, setDAccount] = useState("");
@@ -240,10 +244,10 @@ export default function Finance() {
   const [dNotes, setDNotes] = useState("");
   const [dInBox, setDInBox] = useState(true);
 
-  const { data: daily } = useQuery<TreasuryData>({
-    queryKey: ["finance", "treasury", todayStr(), todayStr(), ""],
-    queryFn: () => apiFetch(`/finance/treasury?from=${todayStr()}&to=${todayStr()}`).then(r => r.json()),
-    refetchInterval: 5000,
+  const { data: daily, isLoading: dailyLoading } = useQuery<TreasuryData>({
+    queryKey: ["finance", "treasury", dDateStr, dDateStr, ""],
+    queryFn: () => apiFetch(`/finance/treasury?from=${dDateStr}&to=${dDateStr}`).then(r => r.json()),
+    refetchInterval: isToday(dDate) ? 5000 : false,
   });
 
   const dailyCreateMut = useMutation({
@@ -259,7 +263,16 @@ export default function Finance() {
   function submitDaily() {
     const amt = parseFloat(dAmt);
     if (isNaN(amt) || amt <= 0) { toast({ variant: "destructive", title: "أدخل مبلغاً صحيحاً" }); return; }
-    dailyCreateMut.mutate({ type: dType, amount: amt, categoryId: dCat ? parseInt(dCat) : null, description: dNotes || null, partyName: dAccount || null, isInCashBox: dInBox });
+    // إضافة التاريخ المحدد للحركة المالية
+    const createdAt = new Date(`${dDateStr}T12:00:00`).toISOString();
+    dailyCreateMut.mutate({ type: dType, amount: amt, categoryId: dCat ? parseInt(dCat) : null, description: dNotes || null, partyName: dAccount || null, isInCashBox: dInBox, createdAt });
+  }
+
+  function dDayLabel() {
+    if (isToday(dDate)) return "اليوم";
+    const diff = Math.round((new Date().setHours(0,0,0,0) - new Date(dDateStr).setHours(0,0,0,0)) / 86400000);
+    if (diff === 1) return "أمس";
+    return format(dDate, "EEEE", { locale: ar });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -754,6 +767,55 @@ export default function Finance() {
 
               {/* Daily Summary + Table */}
               <div className="md:col-span-2 space-y-3">
+
+                {/* ── Day navigator ── */}
+                <div className="flex items-center justify-between bg-card border border-border rounded-xl px-3 py-2 gap-2">
+                  <button
+                    onClick={() => setDDate(d => addDays(d, -1))}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+
+                  <div className="text-center flex-1">
+                    <span className="font-bold text-sm">{dDayLabel()}</span>
+                    <span className="text-muted-foreground text-xs mr-2">
+                      {format(dDate, "dd / MM / yyyy", { locale: ar })}
+                    </span>
+                  </div>
+
+                  {/* Date picker hidden input */}
+                  <input
+                    type="date"
+                    id="d-date-picker"
+                    value={dDateStr}
+                    max={todayStr()}
+                    onChange={e => e.target.value && setDDate(new Date(e.target.value + "T12:00:00"))}
+                    className="sr-only"
+                  />
+                  <label
+                    htmlFor="d-date-picker"
+                    className="h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:bg-accent transition-colors"
+                    title="اختر تاريخاً"
+                  >
+                    <CalendarDays size={15} className="text-muted-foreground" />
+                  </label>
+
+                  <button
+                    onClick={() => setDDate(d => addDays(d, 1))}
+                    disabled={isToday(dDate)}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  {!isToday(dDate) && (
+                    <Button size="sm" variant="outline" className="h-8 text-xs px-2" onClick={() => setDDate(new Date())}>
+                      اليوم
+                    </Button>
+                  )}
+                </div>
+
                 {/* Day summary cards */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-amber-500 text-white rounded-xl p-4 text-center">
@@ -770,10 +832,11 @@ export default function Finance() {
                   </div>
                 </div>
 
-                {/* Today's table */}
+                {/* Day's table */}
                 <div className="bg-card border border-border rounded-xl overflow-hidden">
-                  <div className="bg-green-700 text-white px-4 py-2 text-sm font-semibold">
-                    حركات اليوم — {format(new Date(), "dd/MM/yyyy", { locale: ar })}
+                  <div className="bg-green-700 text-white px-4 py-2 text-sm font-semibold flex items-center justify-between">
+                    <span>حركات {dDayLabel()}</span>
+                    <span dir="ltr">{format(dDate, "dd/MM/yyyy")}</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
