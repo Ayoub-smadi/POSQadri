@@ -128,6 +128,7 @@ export const GetDashboardSummaryResponse = zod.object({
   "sales": zod.number(),
   "profit": zod.number()
 })),
+  "dayInvoiceCount": zod.number().optional().default(0),
   "recentTransactions": zod.array(zod.object({
   "id": zod.number(),
   "number": zod.string(),
@@ -135,7 +136,18 @@ export const GetDashboardSummaryResponse = zod.object({
   "total": zod.number(),
   "paymentMethod": zod.string(),
   "createdAt": zod.string()
-}))
+})),
+  "dayTransactions": zod.array(zod.object({
+  "id": zod.number(),
+  "type": zod.string(),
+  "amount": zod.number(),
+  "description": zod.string().nullish(),
+  "partyName": zod.string().nullish(),
+  "isInCashBox": zod.boolean(),
+  "categoryName": zod.string().nullish(),
+  "categoryIcon": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional().default([])
 })
 
 
