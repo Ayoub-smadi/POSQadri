@@ -784,22 +784,23 @@ export default function Finance() {
                     </span>
                   </div>
 
-                  {/* Date picker hidden input */}
-                  <input
-                    type="date"
-                    id="d-date-picker"
-                    value={dDateStr}
-                    max={todayStr()}
-                    onChange={e => e.target.value && setDDate(new Date(e.target.value + "T12:00:00"))}
-                    className="sr-only"
-                  />
-                  <label
-                    htmlFor="d-date-picker"
-                    className="h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer hover:bg-accent transition-colors"
-                    title="اختر تاريخاً"
-                  >
-                    <CalendarDays size={15} className="text-muted-foreground" />
-                  </label>
+                  {/* Date picker */}
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={dDateStr}
+                      max={todayStr()}
+                      onChange={e => e.target.value && setDDate(new Date(e.target.value + "T12:00:00"))}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      style={{ colorScheme: "light" }}
+                    />
+                    <button
+                      className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-accent transition-colors pointer-events-none"
+                      tabIndex={-1}
+                    >
+                      <CalendarDays size={15} className="text-muted-foreground" />
+                    </button>
+                  </div>
 
                   <button
                     onClick={() => setDDate(d => addDays(d, 1))}
