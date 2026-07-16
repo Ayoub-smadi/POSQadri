@@ -577,7 +577,7 @@ router.get("/finance/treasury", requireAuth, async (req, res): Promise<void> => 
       reference: inv.number,
       account: inv.customerName ?? "زبون عام",
       description: "",
-      type: "invoice",
+      type: inv.paymentMethod === "credit" ? "credit_sale" : "cash_sale",
       createdAt: inv.createdAt,
     });
   }
@@ -591,7 +591,9 @@ router.get("/finance/treasury", requireAuth, async (req, res): Promise<void> => 
       reference: tx.number,
       account: tx.partyName ?? "",
       description: tx.description ?? "",
-      type: tx.type,
+      type: tx.purchaseOrderId
+        ? (tx.type === "payment" ? "purchase_payment" : tx.type)
+        : tx.type,
       createdAt: tx.createdAt,
     });
   }

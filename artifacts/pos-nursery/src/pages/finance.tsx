@@ -102,6 +102,20 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">معلق</Badge>;
 }
 
+function TxTypeBadge({ type }: { type: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    receipt:          { label: "قبض",         cls: "bg-green-100 text-green-700" },
+    payment:          { label: "صرف",         cls: "bg-red-100 text-red-700" },
+    cash_sale:        { label: "بيع نقدي",    cls: "bg-blue-100 text-blue-700" },
+    credit_sale:      { label: "بيع آجل",     cls: "bg-purple-100 text-purple-700" },
+    invoice:          { label: "بيع نقدي",    cls: "bg-blue-100 text-blue-700" },
+    purchase_payment: { label: "شراء نقدي",   cls: "bg-orange-100 text-orange-700" },
+    credit_purchase:  { label: "شراء آجل",    cls: "bg-yellow-100 text-yellow-700" },
+  };
+  const m = map[type] ?? { label: type, cls: "bg-muted text-muted-foreground" };
+  return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.cls}`}>{m.label}</span>;
+}
+
 // ─── Autocomplete Input ───────────────────────────────────────────────────────
 
 function AccountInput({ value, onChange, accounts, placeholder }: { value: string; onChange: (v: string) => void; accounts: string[]; placeholder?: string }) {
@@ -552,9 +566,7 @@ export default function Finance() {
                             >
                               <td className="px-3 py-2 text-center text-xs text-muted-foreground">{row.rowNum}</td>
                               <td className="px-3 py-2 text-center text-xs">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${row.type === "receipt" ? "bg-green-100 text-green-700" : row.type === "invoice" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}`}>
-                                  {row.type === "receipt" ? "قبض" : row.type === "invoice" ? "بيع" : "صرف"}
-                                </span>
+                                <TxTypeBadge type={row.type} />
                               </td>
                               <td className="px-3 py-2 text-center text-xs" dir="ltr">{format(d, "dd/MM/yyyy")}</td>
                               <td className="px-3 py-2 text-center text-xs" dir="ltr">{format(d, "hh:mm a")}</td>
@@ -852,9 +864,7 @@ export default function Finance() {
                         {(daily?.rows ?? []).map(row => (
                           <tr key={row.id} className="border-b border-border/40 hover:bg-muted/30">
                             <td className="px-3 py-2 text-center">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${row.type === "receipt" ? "bg-green-100 text-green-700" : row.type === "invoice" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}`}>
-                                {row.type === "receipt" ? "قبض" : row.type === "invoice" ? "بيع" : "صرف"}
-                              </span>
+                              <TxTypeBadge type={row.type} />
                             </td>
                             <td className="px-3 py-2 text-center font-semibold text-green-600 text-sm">{row.in > 0 ? fmt(row.in) : ""}</td>
                             <td className="px-3 py-2 text-center font-semibold text-red-600 text-sm">{row.out > 0 ? fmt(row.out) : ""}</td>
@@ -983,9 +993,7 @@ export default function Finance() {
                             <td className="px-3 py-2 text-center text-xs" dir="ltr">{format(d, "dd/MM/yyyy")}</td>
                             <td className="px-3 py-2 text-center text-xs" dir="ltr">{format(d, "hh:mm a")}</td>
                             <td className="px-3 py-2 text-center">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${row.type === "invoice" ? "bg-blue-100 text-blue-700" : row.type === "receipt" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                                {row.type === "invoice" ? "فاتورة" : row.type === "receipt" ? "قبض" : "صرف"}
-                              </span>
+                                <TxTypeBadge type={row.type} />
                             </td>
                             <td className="px-3 py-2 text-center font-semibold text-red-600 text-sm">{row.debit > 0 ? fmt(row.debit) : ""}</td>
                             <td className="px-3 py-2 text-center font-semibold text-green-600 text-sm">{row.credit > 0 ? fmt(row.credit) : ""}</td>
